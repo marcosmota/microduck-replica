@@ -1,11 +1,13 @@
-# CAD 与模型统一到配套仓库
+# CAD e modelos unificados no repositório complementar
 
-**请到 [fanhao375/microduck-replica-cad](https://github.com/fanhao375/microduck-replica-cad) 下载结构件、装配体、SolidWorks / STEP 源文件和打印工程。**
+> 🌐 Tradução não oficial para pt-BR do [original](https://github.com/fanhao375/microduck-replica). Em caso de divergência, vale o original. Licença: CC BY-NC-SA 4.0 (texto alterado: traduzido do chinês/inglês).
 
-该仓库是模型的统一维护入口，包含版本选择、装配 BOM、组件图及安装说明。截至 2026-09-28，飞特 HD-1910 为 [v2.1](https://github.com/fanhao375/microduck-replica-cad/releases/tag/v2.1)，XL330 为 [v1.1](https://github.com/fanhao375/microduck-replica-cad/releases/tag/v1.1)。下载前核对舵机类型和具体附件版本；打印注意事项见 [print/README](../print/README.md)。
+**Baixe as peças estruturais, os conjuntos montados, os arquivos-fonte SolidWorks / STEP e os projetos de impressão em [fanhao375/microduck-replica-cad](https://github.com/fanhao375/microduck-replica-cad).**
 
-本目录以前的 16 个 STL 是从上游 MJCF 生成的装配预览，未同步最新实物 CAD，已于 2026-09-28 移除。需要追溯时查看 Git 历史；最新文件统一从配套仓库获取。
+Esse repositório é o ponto de entrada unificado dos modelos e inclui a escolha de versão, a BOM de montagem, os diagramas de componentes e as instruções de instalação. Em 2026-09-28, o Feetech HD-1910 está na [v2.1](https://github.com/fanhao375/microduck-replica-cad/releases/tag/v2.1) e o XL330 na [v1.1](https://github.com/fanhao375/microduck-replica-cad/releases/tag/v1.1). Antes de baixar, confira o tipo de servo e a versão específica do anexo; para as observações sobre impressão, veja [print/README](../print/README.md).
 
-本仓 `assembly-drawings/` 的分析渲染、训练模型和网页调试模型仍有上游几何，不应作为最新结构件的加工或打印依据。[导出脚本](../scripts/export_assembly_stl.py)仅供上游模型分析，默认输出到被忽略的 `analysis-output/cad-upstream/`。
+Os 16 STL que existiam neste diretório eram prévias de montagem geradas a partir do MJCF do upstream, não sincronizadas com o CAD físico mais recente, e foram removidos em 2026-09-28. Para consultá-los, veja o histórico do Git; os arquivos mais recentes devem ser obtidos sempre no repositório complementar.
+
+As renderizações de análise em `assembly-drawings/` deste repositório, os modelos de treinamento e os modelos do console web de depuração ainda usam geometria do upstream e não devem servir de base para usinagem ou impressão das peças estruturais mais recentes. O [script de exportação](../scripts/export_assembly_stl.py) serve apenas para análise do modelo do upstream e por padrão grava em `analysis-output/cad-upstream/`, que é ignorado pelo Git.
 
 **English:** CAD assemblies, mechanical parts and print files now have one maintained source: [microduck-replica-cad](https://github.com/fanhao375/microduck-replica-cad). The old upstream assembly-preview STLs were removed from this directory. Simulation and visualization meshes retained elsewhere are not manufacturing files.

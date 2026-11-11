@@ -1,17 +1,19 @@
-# Microduck HD1910 仿真训练
+# Microduck HD1910: treinamento em simulação
 
-飞特 HD-1910 的训练代码、模型、参数、依赖锁文件和测试统一维护在本目录。
-下载或克隆 `microduck-replica` 即可取得完整工程，无需再拉训练分支或初始化子模块。
+> 🌐 Tradução não oficial para pt-BR do [original](https://github.com/fanhao375/microduck-replica). Em caso de divergência, vale o original.
 
-采用 **[LuwuDynamics 公开的 1910 BAM M6 参数](src/mjlab_microduck/robot/hd1910/README.md)**，
-训练框架与 Microduck 几何来自 [Pollen Robotics](https://github.com/pollen-robotics/microduck_rl)，
-执行器模型来自 [Rhoban/BAM](https://github.com/Rhoban/bam)。参数不是本项目自行辨识的结果。
-本项目补充 HD1910 任务配置、飞特控制器状态初始化适配及回归检查。
+O código de treinamento, os modelos, os parâmetros, os arquivos de lock de dependências e os testes do Feetech HD-1910 são mantidos todos neste diretório.
+Baixar ou clonar o `microduck-replica` já dá o projeto completo, sem precisar buscar branch de treinamento nem inicializar submódulos.
 
-## 快速开始
+Usa os **[parâmetros 1910 BAM M6 publicados pelo LuwuDynamics](src/mjlab_microduck/robot/hd1910/README.md)**;
+o framework de treinamento e a geometria do Microduck vêm da [Pollen Robotics](https://github.com/pollen-robotics/microduck_rl),
+e o modelo de atuador vem de [Rhoban/BAM](https://github.com/Rhoban/bam). Os parâmetros não são resultado de identificação feita por este projeto.
+Este projeto acrescenta a configuração de tarefas do HD1910, a adaptação da inicialização do estado do controlador Feetech e verificações de regressão.
 
-使用有 NVIDIA CUDA GPU 的 Linux，或已配置 GPU 的 WSL2；需要 Git 和 [uv](https://docs.astral.sh/uv/)。
-在 Linux / WSL 终端执行：
+## Início rápido
+
+Use Linux com GPU NVIDIA CUDA, ou WSL2 com GPU já configurada; precisa de Git e [uv](https://docs.astral.sh/uv/).
+Execute em um terminal Linux / WSL:
 
 ```bash
 git clone https://github.com/fanhao375/microduck-replica.git
@@ -24,27 +26,27 @@ uv run --frozen train Mjlab-Velocity-Flat-MicroDuck-HD1910 \
   --agent.logger tensorboard
 ```
 
-如果已经下载本仓库，直接进入 `software/training/` 安装和运行即可。
-可选的 HF Jobs 云端提交功能需要通过 Git 克隆，以便按 Git 忽略规则打包源码；
-直接下载 ZIP 适用于上述本地训练。
-日志与检查点保存在本目录的 `logs/rsl_rl/microduck_hd1910_velocity/`，不随源码发布。
-5 轮短训练用于检查加载、步进和保存流程，尚不足以学会走路。
+Se você já baixou este repositório, basta entrar em `software/training/` para instalar e executar.
+O envio opcional de jobs em nuvem HF Jobs precisa de clone via Git, para empacotar o código-fonte segundo as regras de ignore do Git;
+baixar o ZIP diretamente serve para o treinamento local acima.
+Logs e checkpoints ficam em `logs/rsl_rl/microduck_hd1910_velocity/` neste diretório e não são publicados com o código-fonte.
+O treinamento curto de 5 iterações serve para verificar o carregamento, o passo de simulação e o salvamento, e ainda não basta para aprender a andar.
 
-| 入口 | 用途 |
+| Entrada | Finalidade |
 |---|---|
-| `Mjlab-Velocity-Flat-MicroDuck-HD1910` | HD1910 平地速度任务 |
-| `Mjlab-Velocity-Rough-MicroDuck-HD1910` | HD1910 地形速度任务 |
+| `Mjlab-Velocity-Flat-MicroDuck-HD1910` | Tarefa de velocidade em terreno plano do HD1910 |
+| `Mjlab-Velocity-Rough-MicroDuck-HD1910` | Tarefa de velocidade em terreno irregular do HD1910 |
 
-当前是仿真接入基线，尚无本机实测通过的走路策略。质量惯量仍沿用原版 Microduck
-仿真值；后续需要结合飞特实机校正，并核对零位、方向、限位、供电、IMU 和通信时序。
+Atualmente é a linha de base de integração em simulação, e ainda não há uma política de marcha aprovada em testes no robô real. Massa e inércia ainda seguem os valores
+de simulação do Microduck original; depois será preciso corrigi-los com o robô Feetech real e conferir zeros, sentidos, limites, alimentação, IMU e temporização de comunicação.
 
-## 说明与测试
+## Descrição e testes
 
-- [使用说明、验证记录与初始化问题解释](docs/hd1910-baseline.md)：缺失的是飞特控制器的目标角度历史，修复不改变借用的 M6 参数。
-- [来源、固定版本与许可证范围](UPSTREAM.md)。
-- [原训练项目 README](README.upstream.md)：保留上游任务和工具说明，其中默认任务面向 XL330；飞特版使用上表的 HD1910 入口。
+- [Instruções de uso, registro de validação e explicação do problema de inicialização](docs/hd1910-baseline.md): o que faltava é o histórico de ângulos-alvo do controlador Feetech, e a correção não altera os parâmetros M6 emprestados.
+- [Origem, versões fixadas e alcance das licenças](UPSTREAM.md).
+- [README do projeto de treinamento original](README.upstream.md): mantém a descrição das tarefas e ferramentas upstream, cuja tarefa padrão é voltada ao XL330; a versão Feetech usa as entradas HD1910 da tabela acima.
 
-在本目录运行接入与回归检查（包含 GPU 步进）：
+Execute neste diretório as verificações de integração e regressão (incluindo o passo de simulação em GPU):
 
 ```bash
 uv run --frozen --with pytest python -m pytest -q \
@@ -53,11 +55,11 @@ uv run --frozen --with pytest python -m pytest -q \
   tests/test_hf_source_snapshot.py
 ```
 
-策略导出沿用 `scripts/export.py`，把观测归一化包含在 ONNX 中。短训练检查点只用于
-验证流程，不作为实机步态发布。
+A exportação de política continua usando `scripts/export.py`, incluindo a normalização de observações no ONNX. Checkpoints de treinamento curto servem apenas para
+validar o fluxo, e não como marcha publicada para o robô real.
 
-## 许可
+## Licença
 
-本训练目录的代码、配置、参数和文档采用 [Apache-2.0](LICENSE)，保留第三方署名。
-**3D 模型与网格遵循上游 CC BY-NC-SA 声明**，不因并入本仓库而改为 Apache-2.0；
-详见 [UPSTREAM.md](UPSTREAM.md) 与根目录 [NOTICE.md](../../NOTICE.md)。
+O código, a configuração, os parâmetros e a documentação deste diretório de treinamento usam [Apache-2.0](LICENSE), mantendo as atribuições de terceiros.
+**Os modelos 3D e as malhas seguem a declaração CC BY-NC-SA do upstream** e não passam a Apache-2.0 por terem sido incorporados a este repositório;
+veja [UPSTREAM.md](UPSTREAM.md) e o [NOTICE.md](../../NOTICE.md) na raiz.

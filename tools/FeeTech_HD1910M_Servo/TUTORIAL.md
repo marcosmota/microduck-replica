@@ -1,51 +1,53 @@
-# HD1910M 舵机测试工具 —— Rust 实战教学手册
+# Ferramenta de teste de servo HD1910M —— Manual didático prático de Rust
 
-> 本手册配合源码阅读。目标：通过一个“真实能控制硬件”的项目，
-> 学会 Rust 的核心概念，同时掌握飞特（Feetech）FT-SCS 串口舵机协议。
+> 🌐 Tradução não oficial para pt-BR do [original](https://github.com/fanhao375/microduck-replica). Em caso de divergência, vale o original. Licença: CC BY-NC-SA 4.0 (texto alterado: traduzido do chinês/inglês).
+
+> Este manual acompanha a leitura do código-fonte. Objetivo: por meio de um projeto que "realmente controla hardware",
+> aprender os conceitos centrais de Rust e, ao mesmo tempo, dominar o protocolo serial de servos FT-SCS da Feetech.
 >
-> 硬件：HD1910M 舵机（6V 12kg·cm、360° 磁编码、TTL 半双工串口、带力控）
-> 软件：Rust 1.98+ / 树莓派 / CH340 USB 转串口
+> Hardware: servo HD1910M (6V 12kg·cm, encoder magnético de 360°, serial TTL half-duplex, com controle de força)
+> Software: Rust 1.98+ / Raspberry Pi / adaptador USB-serial CH340
 
 ---
 
-## 目录
+## Sumário
 
-1. [硬件连接](#1-硬件连接)
-2. [五分钟上手](#2-五分钟上手)
-3. [FT-SCS 通信协议详解](#3-ft-scs-通信协议详解)
-4. [内存表详解](#4-内存表详解)
-5. [项目结构与分层设计](#5-项目结构与分层设计)
-6. [Rust 知识点精讲](#6-rust-知识点精讲)
-7. [命令完整参考](#7-命令完整参考)
-8. [实验教程（动手做）](#8-实验教程动手做)
-9. [安全注意事项](#9-安全注意事项)
-10. [常见问题排查](#10-常见问题排查)
+1. [Conexão de hardware](#1-conexão-de-hardware)
+2. [Primeiros cinco minutos](#2-primeiros-cinco-minutos)
+3. [O protocolo de comunicação FT-SCS em detalhe](#3-o-protocolo-de-comunicação-ft-scs-em-detalhe)
+4. [A tabela de memória em detalhe](#4-a-tabela-de-memória-em-detalhe)
+5. [Estrutura do projeto e design em camadas](#5-estrutura-do-projeto-e-design-em-camadas)
+6. [Conceitos de Rust em detalhe](#6-conceitos-de-rust-em-detalhe)
+7. [Referência completa dos comandos](#7-referência-completa-dos-comandos)
+8. [Tutorial de experimentos (mão na massa)](#8-tutorial-de-experimentos-mão-na-massa)
+9. [Precauções de segurança](#9-precauções-de-segurança)
+10. [Solução de problemas comuns](#10-solução-de-problemas-comuns)
 
 ---
 
-## 1. 硬件连接
+## 1. Conexão de hardware
 
-舵机引出线（AMP2.0-3P 连接器）：
+Cabo de saída do servo (conector AMP2.0-3P):
 
-| 引脚 | 线色 | 功能 | 接到哪里 |
+| Pino | Cor do fio | Função | Liga a quê |
 |------|------|------|----------|
-| 1 | 黑 | Signal（TTL 串口信号） | CH340 的 TX 与 RX（半双工，见下） |
-| 2 | 黑 | Vcc（4~8.4V，典型 6V/7.4V） | **外部电源正极**（不能靠 USB 供电！） |
-| 3 | 黑 | GND | 外部电源负极，**必须与 CH340 的 GND 共地** |
+| 1 | Preto | Signal (sinal serial TTL) | TX e RX do CH340 (half-duplex, veja abaixo) |
+| 2 | Preto | Vcc (4~8,4V, típico 6V/7,4V) | **Positivo da fonte externa** (não dá para alimentar pelo USB!) |
+| 3 | Preto | GND | Negativo da fonte externa, **deve ter terra comum com o GND do CH340** |
 
-关键点：
+Pontos-chave:
 
-- **半双工**：舵机只有一根信号线，收发都走它。CH340 是全双工的（TX/RX 分开），
-  简易接法是把 CH340 的 TX 和 RX 短接后一起接到舵机信号线 —— 代价是自己发出去
-  的数据会被自己收回来（“回显”），这时运行程序要加 `--echo` 参数丢弃回显。
-  更规范的做法是用飞特官方的半双工转接板（URT-1 等），则不需要 `--echo`。
-- **共地**：舵机 GND、电源 GND、CH340 GND 三者必须连在一起，否则通信不可靠。
-- **供电**：堵转电流可达 1.6A（6V 时），USB 口带不动，务必用独立电源。
-- 树莓派上 CH340 通常识别为 `/dev/ttyUSB0`（本工具默认值）。
+- **Half-duplex**: o servo tem uma única linha de sinal, e tanto o envio quanto a recepção passam por ela. O CH340 é full-duplex (TX/RX separados);
+  a ligação simples é curto-circuitar o TX e o RX do CH340 e ligá-los juntos à linha de sinal do servo —— o custo é que os dados que
+  você mesmo envia voltam para você ("eco"), e então é preciso acrescentar o parâmetro `--echo` ao executar o programa para descartar o eco.
+  O jeito mais correto é usar a placa de conversão half-duplex oficial da Feetech (URT-1 etc.), e então o `--echo` não é necessário.
+- **Terra comum**: o GND do servo, o GND da fonte e o GND do CH340 devem estar ligados entre si, senão a comunicação não é confiável.
+- **Alimentação**: a corrente de travamento pode chegar a 1,6A (a 6V), o USB não aguenta, use sempre uma fonte independente.
+- No Raspberry Pi, o CH340 normalmente é reconhecido como `/dev/ttyUSB0` (o padrão desta ferramenta).
 
 ---
 
-## 2. 五分钟上手
+## 2. Primeiros cinco minutos
 
 ```bash
 # 构建（第一次会下载依赖并编译，产物在 target/debug/）
@@ -74,7 +76,7 @@ cargo run -- scan
 ./target/debug/feetech-HD1910M-tester pid --help   # 查看某个子命令的帮助
 ```
 
-全局参数（放在子命令前后都可以）：
+Parâmetros globais (podem ficar antes ou depois do subcomando):
 
 ```
 -p / --port     串口路径，默认 /dev/ttyUSB0
@@ -87,51 +89,51 @@ cargo run -- scan
 
 ---
 
-## 3. FT-SCS 通信协议详解
+## 3. O protocolo de comunicação FT-SCS em detalhe
 
-对应源码：`src/protocol.rs`
+Código-fonte correspondente: `src/protocol.rs`
 
-舵机出厂串口配置：**1Mbps、8 数据位、无校验、1 停止位**（规格书 7-2 节）。
-协议是经典的“主从问答式”：主机（树莓派）发一条指令包，舵机回一条应答包。
+A configuração serial de fábrica do servo: **1Mbps, 8 bits de dados, sem paridade, 1 bit de parada** (seção 7-2 da especificação).
+O protocolo é o clássico "mestre-escravo de pergunta e resposta": o host (Raspberry Pi) envia um pacote de instrução e o servo responde com um pacote de resposta.
 
-### 3.1 主机下发包
+### 3.1 Pacote enviado pelo host
 
 ```
  字节:    0     1     2      3         4         5..N+4     N+5
  内容:  0xFF  0xFF   ID   Length  Instruction   参数...   Checksum
 ```
 
-- **帧头** `0xFF 0xFF`：固定两个字节，接收方靠它对齐一帧的起点；
-- **ID**：目标舵机站号 0~253；`0xFE` 是广播地址（所有舵机执行，但都不应答）；
-- **Length** = 参数个数 N + 2（指令 1 字节 + 校验 1 字节）；
-- **Checksum** = `~(ID + Length + Instruction + 所有参数)` 取低 8 位。
-  接收方重新计算，不一致说明传输出错，整包丢弃。
+- **Cabeçalho** `0xFF 0xFF`: dois bytes fixos, pelos quais o receptor alinha o início de um quadro;
+- **ID**: número da estação do servo de destino, 0~253; `0xFE` é o endereço de broadcast (todos os servos executam, mas nenhum responde);
+- **Length** = número de parâmetros N + 2 (1 byte da instrução + 1 byte do checksum);
+- **Checksum** = `~(ID + Length + Instruction + todos os parâmetros)`, tomando os 8 bits baixos.
+  O receptor recalcula; se não coincidir, houve erro de transmissão e o pacote inteiro é descartado.
 
-### 3.2 舵机应答包
+### 3.2 Pacote de resposta do servo
 
-格式与下发包几乎一致，只是第 4 字节由“指令”换成了“**错误状态字**”：
+O formato é quase idêntico ao do pacote enviado, só que o 4º byte passa de "instrução" para "**palavra de estado de erro**":
 
 ```
  0xFF  0xFF   ID   Length   Error   参数...   Checksum
 ```
 
-Error 为 0 表示正常；非 0 时按位解读（BIT0 电压 / BIT1 磁编码 / BIT2 温度 / BIT3 电流）。
+Error igual a 0 significa normal; se diferente de 0, interpreta-se bit a bit (BIT0 tensão / BIT1 encoder magnético / BIT2 temperatura / BIT3 corrente).
 
-### 3.3 指令集
+### 3.3 Conjunto de instruções
 
-| 指令 | 值 | 用途 |
+| Instrução | Valor | Finalidade |
 |------|-----|------|
-| PING | 0x01 | 握手，判断舵机是否在线 |
-| READ | 0x02 | 读内存表，参数 = [起始地址, 字节数] |
-| WRITE | 0x03 | 写内存表，参数 = [起始地址, 数据...]，立即生效 |
-| REG WRITE | 0x04 | 异步写：先缓存，不执行 |
-| ACTION | 0x05 | 触发所有缓存的异步写（多舵机同步动作的关键） |
-| RESET | 0x06 | 恢复出厂设置 |
-| SYNC WRITE | 0x83 | 一条报文给多个舵机写同一地址 |
+| PING | 0x01 | Handshake, verificar se o servo está online |
+| READ | 0x02 | Ler a tabela de memória, parâmetros = [endereço inicial, nº de bytes] |
+| WRITE | 0x03 | Escrever na tabela de memória, parâmetros = [endereço inicial, dados...], efeito imediato |
+| REG WRITE | 0x04 | Escrita assíncrona: guarda em buffer primeiro, sem executar |
+| ACTION | 0x05 | Dispara todas as escritas assíncronas em buffer (a chave para ação sincronizada de vários servos) |
+| RESET | 0x06 | Restaurar as configurações de fábrica |
+| SYNC WRITE | 0x83 | Uma mensagem escreve o mesmo endereço em vários servos |
 
-### 3.4 一个真实例子
+### 3.4 Um exemplo real
 
-用 `-v` 参数可以看到实际收发的报文，例如 `goto 911 --speed 500`：
+Com o parâmetro `-v` é possível ver as mensagens realmente trocadas, por exemplo `goto 911 --speed 500`:
 
 ```
 >> 发送: [FF, FF, 01, 05, 03, 2E, F4, 01, D3]   # WRITE 地址46(速度) = 0x01F4 = 500
@@ -140,93 +142,93 @@ Error 为 0 表示正常；非 0 时按位解读（BIT0 电压 / BIT1 磁编码 
 >> 发送: [FF, FF, 01, 05, 03, 2A, 8F, 03, 3A]   # WRITE 地址42(目标位置) = 0x038F = 911
 ```
 
-动手验证校验和：`0x01+0x05 = 0x06，+0x03 = 0x09，+0x2E = 0x37，+0xF4 = 0x12B，+0x01 = 0x12C`；
-只保留低 8 位得 `0x2C`，按位取反 `!0x2C = 0xD3` —— 与报文最后一字节完全一致 ✔
+Verifique o checksum à mão: `0x01+0x05 = 0x06，+0x03 = 0x09，+0x2E = 0x37，+0xF4 = 0x12B，+0x01 = 0x12C`;
+mantendo só os 8 bits baixos obtém-se `0x2C`, e invertendo bit a bit `!0x2C = 0xD3` —— exatamente igual ao último byte da mensagem ✔
 
-> **练习**：打开 `src/protocol.rs` 底部的单元测试（`cargo test`），
-> 里面有 PING 报文的完整断言，试着手算验证。
+> **Exercício**: abra os testes unitários no final de `src/protocol.rs` (`cargo test`);
+> neles há a asserção completa do pacote PING; tente verificá-la calculando à mão.
 
 ---
 
-## 4. 内存表详解
+## 4. A tabela de memória em detalhe
 
-对应源码：`src/registers.rs`
+Código-fonte correspondente: `src/registers.rs`
 
-内存表是舵机内部的“参数登记表”，每个地址存一项参数。**两字节数据低字节在前（小端）**。
+A tabela de memória é o "registro de parâmetros" interno do servo, com cada endereço guardando um parâmetro. **Dados de dois bytes têm o byte baixo primeiro (little-endian)**.
 
-### 4.1 五个分区
+### 4.1 Cinco regiões
 
-| 地址 | 分区 | 权限 | 说明 |
+| Endereço | Região | Permissão | Descrição |
 |------|------|------|------|
-| 0~4 | 版本信息 | 只读 | 固件/舵机版本号、字节序标志 |
-| 5~39 | EPROM 配置 | 读写 | ID、波特率、PID、保护参数……**可掉电保存** |
-| 40~55 | SRAM 控制 | 读写 | 扭矩开关、目标位置/电流/速度……实时生效、掉电丢失 |
-| 56~75 | SRAM 反馈 | 只读 | 当前位置/速度/负载/电压/温度/电流 |
-| 77~86 | 出厂参数 | 只读 | 工厂标定值，不要动 |
+| 0~4 | Informações de versão | Somente leitura | Número de versão do firmware/servo, flag de ordem de bytes |
+| 5~39 | Configuração EPROM | Leitura e escrita | ID, baud rate, PID, parâmetros de proteção…… **Guardados ao desligar** |
+| 40~55 | Controle SRAM | Leitura e escrita | Chave de torque, posição/corrente/velocidade-alvo……Efeito em tempo real, perdidos ao desligar |
+| 56~75 | Realimentação SRAM | Somente leitura | Posição/velocidade/carga/tensão/temperatura/corrente atuais |
+| 77~86 | Parâmetros de fábrica | Somente leitura | Valores de calibração de fábrica, não mexer |
 
-### 4.2 锁标志（55 号地址）—— EPROM 掉电保存机制
+### 4.2 Flag de trava (endereço 55) —— o mecanismo de persistência da EPROM
 
-这是最容易踩坑的机制：
+Este é o mecanismo em que mais se tropeça:
 
-- 锁 = **1（出厂默认）**：写 EPROM 区域（5~39 号地址）只改内存中的值，**掉电后恢复原值**；
-- 锁 = **0**：写 EPROM 区域的值会真正烧入 EPROM，**掉电保存**。
+- Trava = **1 (padrão de fábrica)**: escrever na região EPROM (endereços 5~39) só altera o valor na memória, que **volta ao original ao desligar**;
+- Trava = **0**: o valor escrito na região EPROM é realmente gravado na EPROM, **guardado ao desligar**.
 
-所以“持久化一个配置”的标准流程是：**解锁 → 写入 → 重新上锁**。
-本工具的 `set <寄存器> <值> --save`、`set-id`、`set-baud` 都自动走这个流程
-（见 `src/servo.rs` 的 `save_reg` 函数）。
+Por isso o fluxo padrão para "persistir uma configuração" é: **destravar → escrever → travar de novo**.
+O `set <registrador> <valor> --save`, o `set-id` e o `set-baud` desta ferramenta seguem automaticamente esse fluxo
+(veja a função `save_reg` em `src/servo.rs`).
 
-> 为什么不能一直保持解锁？EPROM 有擦写寿命（约 10 万次），
-> 上锁能防止程序 bug 导致的疯狂擦写损坏舵机。
+> Por que não se pode deixar sempre destravado? A EPROM tem vida útil de escrita/apagamento (cerca de 100 mil vezes),
+> e travar evita que um bug do programa cause escritas frenéticas que danifiquem o servo.
 
-### 4.3 符号-幅值编码 —— 负数不是补码！
+### 4.3 Codificação sinal-magnitude —— números negativos não são complemento de dois!
 
-飞特协议里带方向的量（位置、速度、电流、负载、位置偏移）**不是**用计算机常见的
-二进制补码表示负数，而是用“**符号位 + 绝对值**”：
+As grandezas com sinal no protocolo Feetech (posição, velocidade, corrente, carga, deslocamento de posição) **não** representam números negativos
+com o complemento de dois binário usual dos computadores, e sim com "**bit de sinal + valor absoluto**":
 
-- 大部分量：**BIT15 是方向位**，低 15 位是绝对值。例如 `-100` 编码为 `0x8000 | 100 = 0x8064`；
-- 当前负载（60 号地址）特殊：**BIT10 是方向位**，低 10 位是绝对值。
+- A maioria das grandezas: **o BIT15 é o bit de direção**, e os 15 bits baixos são o valor absoluto. Por exemplo, `-100` é codificado como `0x8000 | 100 = 0x8064`;
+- A carga atual (endereço 60) é especial: **o BIT10 é o bit de direção**, e os 10 bits baixos são o valor absoluto.
 
-如果按补码去解码 `0x8064`，你会得到 -32668 而不是 -100 —— 彻底错误。
-本工具在 `src/registers.rs` 的 `decode_value`/`encode_value` 里统一处理，
-每个寄存器的 `sign_bit` 字段声明了它用哪一位做符号位。
+Se decodificar `0x8064` como complemento de dois, obtém-se -32668 em vez de -100 —— completamente errado.
+Esta ferramenta trata isso de forma unificada em `decode_value`/`encode_value` de `src/registers.rs`,
+e o campo `sign_bit` de cada registrador declara qual bit ele usa como bit de sinal.
 
-### 4.4 运行模式（33 号地址）
+### 4.4 Modo de operação (endereço 33)
 
-| 值 | 模式 | 说明 |
+| Valor | Modo | Descrição |
 |----|------|------|
-| 0 | 位置伺服模式 | 位置闭环 + 目标电流限力（可力控） |
-| 1 | 电机恒速模式 | 速度闭环，负载增加速度不降（轮式驱动用） |
-| 2 | 电机恒流模式 | 电流闭环，输出恒定力矩 |
-| 3 | PWM 开环调速 | 占空比调压，无闭环，转速随负载波动 |
-| 4 | 纯位置 PD 模式 | 比例-微分位置闭环（Sim2Real，**本机出厂默认**） |
+| 0 | Modo servo de posição | Malha fechada de posição + limite de força por corrente-alvo (permite controle de força) |
+| 1 | Modo de velocidade constante do motor | Malha fechada de velocidade, a velocidade não cai com o aumento da carga (para acionamento de rodas) |
+| 2 | Modo de corrente constante do motor | Malha fechada de corrente, saída de torque constante |
+| 3 | Regulagem de velocidade PWM em malha aberta | Tensão por razão cíclica, sem malha fechada, a rotação oscila com a carga |
+| 4 | Modo PD de posição pura | Malha fechada de posição proporcional-derivativa (Sim2Real, **padrão de fábrica desta unidade**) |
 
-### 4.5 PID 参数的两套地址
+### 4.5 Dois conjuntos de endereços dos parâmetros PID
 
-这是内存表设计中最精妙的一处：
+Este é o ponto mais engenhoso do projeto da tabela de memória:
 
-- **EPROM 配置区**（21/22/23 位置环 P/D/I，37/39 速度环 P/I，34/35 电流环 P/I）：
-  存“出厂默认值”，**上电时**被拷贝到运行区；
-- **SRAM 运行区**（50 Kp / 51 Kd / 52 Ki）：**运行时真正生效**的值，改了立即起作用，掉电丢失。
+- **Região de configuração EPROM** (21/22/23 P/D/I da malha de posição, 37/39 P/I da malha de velocidade, 34/35 P/I da malha de corrente):
+  guarda os "valores padrão de fábrica", copiados para a região de execução **na energização**;
+- **Região de execução SRAM** (50 Kp / 51 Kd / 52 Ki): os valores que **realmente valem em operação**, e alterá-los surte efeito imediato, sendo perdidos ao desligar.
 
-调参的正确姿势：先用 `pid position --kp 40 --ram` 在运行区反复试，
-满意后再 `pid position --kp 40 --save` 写进 EPROM 永久保存。
+A forma correta de ajustar: primeiro experimente repetidamente na região de execução com `pid position --kp 40 --ram`,
+e quando estiver satisfeito use `pid position --kp 40 --save` para gravar permanentemente na EPROM.
 
-注意运行区 50/51/52 的“含义随模式切换”：位置伺服模式下是位置环 PID；
-恒速模式（模式 1）下变成速度环 PI（Kd 无效）。
+Atenção: o "significado muda conforme o modo" nos endereços 50/51/52 da região de execução: no modo servo de posição é o PID da malha de posição;
+no modo de velocidade constante (modo 1) vira o PI da malha de velocidade (o Kd é inválido).
 
-### 4.6 保护类寄存器
+### 4.6 Registradores de proteção
 
-- 13 号 最高温度上限（默认 80°C，超温关扭矩）；
-- 14/15 号 最高/最低输入电压（0.1V 单位）；
-- 28 号 保护电流（6.5mA 单位）+ 38 号 过流保护时间（10ms 单位）：
-  电流超限持续这么久就进入过流保护（重新发位置指令可清除）；
-- 19 号 卸载条件 / 20 号 LED 报警条件：**位掩码**，
-  BIT0(1)=电压 BIT1(2)=磁编码 BIT2(4)=过热 BIT3(8)=过流，置 1 开启。
-  例如同时开电压+过热保护就是 `1+4=5`。
+- Endereço 13, limite máximo de temperatura (padrão 80°C, acima disso o torque desliga);
+- Endereços 14/15, tensão de entrada máxima/mínima (unidade de 0,1V);
+- Endereço 28, corrente de proteção (unidade de 6,5mA) + endereço 38, tempo de proteção contra sobrecorrente (unidade de 10ms):
+  quando a corrente excede o limite por esse tempo, entra-se na proteção de sobrecorrente (reenviar um comando de posição a limpa);
+- Endereço 19, condição de descarga / endereço 20, condição de alarme do LED: **máscaras de bits**,
+  BIT0(1)=tensão BIT1(2)=encoder magnético BIT2(4)=superaquecimento BIT3(8)=sobrecorrente, 1 liga.
+  Por exemplo, ligar as proteções de tensão e superaquecimento ao mesmo tempo é `1+4=5`.
 
 ---
 
-## 5. 项目结构与分层设计
+## 5. Estrutura do projeto e design em camadas
 
 ```
 FT-HD1901M_Servo/
@@ -240,28 +242,28 @@ FT-HD1901M_Servo/
 └── TUTORIAL.md         # 本手册
 ```
 
-**分层的意义**：底下两层（protocol、registers）是纯数据转换，不含任何串口操作，
-所以可以脱离硬件做单元测试（`cargo test`）。如果所有代码揉在一起，
-测试协议逻辑就得真的接一台舵机 —— 这就是“关注点分离”。
+**O sentido da separação em camadas**: as duas camadas de baixo (protocol, registers) são pura conversão de dados, sem nenhuma operação serial,
+e portanto podem receber testes unitários sem hardware (`cargo test`). Se todo o código fosse misturado,
+para testar a lógica do protocolo seria preciso ligar um servo de verdade —— isto é a "separação de responsabilidades".
 
-依赖关系单向流动：`main.rs → servo.rs → protocol.rs / registers.rs`，
-`error.rs` 被所有层使用。绝不出现下层引用上层。
+As dependências fluem em um só sentido: `main.rs → servo.rs → protocol.rs / registers.rs`,
+e o `error.rs` é usado por todas as camadas. Jamais uma camada inferior referencia uma superior.
 
 ---
 
-## 6. Rust 知识点精讲
+## 6. Conceitos de Rust em detalhe
 
-按你在源码中遇到它们的顺序讲解。每个知识点都标注了对应的源码位置。
+Explicados na ordem em que você os encontra no código-fonte. Cada conceito indica a posição correspondente no código.
 
-### 6.1 Cargo 与模块系统 —— `Cargo.toml`、`src/main.rs` 开头
+### 6.1 Cargo e o sistema de módulos —— `Cargo.toml`, início do `src/main.rs`
 
-- `Cargo.toml` 声明依赖，构建时自动从 crates.io 下载，写进 `Cargo.lock` 锁定版本；
-- `mod error;` 声明模块，`use crate::error::Result;` 引入模块里的名字；
-- `crate::` 表示“从项目根开始找”，类似绝对路径。
+- O `Cargo.toml` declara as dependências, que são baixadas automaticamente do crates.io na compilação e travadas em versão no `Cargo.lock`;
+- `mod error;` declara um módulo, e `use crate::error::Result;` traz para o escopo um nome de dentro do módulo;
+- `crate::` significa "procurar a partir da raiz do projeto", semelhante a um caminho absoluto.
 
-### 6.2 错误处理：Result 与 `?` —— `src/error.rs`
+### 6.2 Tratamento de erros: Result e `?` —— `src/error.rs`
 
-Rust 没有异常。可能失败的函数返回 `Result<T, E>`：
+Rust não tem exceções. Funções que podem falhar retornam `Result<T, E>`:
 
 ```rust
 // 传统写法（啰嗦）
@@ -274,15 +276,15 @@ let port = match serialport::new(path, baud).open() {
 let port = serialport::new(path, baud).open()?;
 ```
 
-`?` 的语义：**失败就转换错误类型并提前 return，成功就取出值继续**。
-`#[from]` 注解（thiserror 提供）让 `serialport::Error` 自动转成我们自己的
-`ServoError`，所以一个 `?` 就够。
+A semântica do `?`: **em caso de falha, converte o tipo de erro e retorna antecipadamente; em caso de sucesso, extrai o valor e continua**.
+A anotação `#[from]` (fornecida pelo thiserror) faz o `serialport::Error` ser convertido automaticamente no nosso próprio
+`ServoError`, então um único `?` basta.
 
-**为什么要自定义错误枚举？** 上层只面对一种错误类型，用 `match` 就能区分
-“超时”（可能只是没这个 ID，扫描时属正常）和“校验和错误”（线路有问题）。
-见 `servo.rs` 的 `ping()`。
+**Por que definir um enum de erro próprio?** Assim as camadas superiores lidam com um único tipo de erro, e com `match` se distingue
+"timeout" (pode ser só que esse ID não existe, normal durante uma varredura) de "erro de checksum" (há problema na linha).
+Veja o `ping()` em `servo.rs`.
 
-### 6.3 枚举：Rust 的“王牌特性” —— `src/error.rs`、`src/protocol.rs`
+### 6.3 Enums: o "trunfo" do Rust —— `src/error.rs`, `src/protocol.rs`
 
 ```rust
 pub enum ServoError {
@@ -293,8 +295,8 @@ pub enum ServoError {
 }
 ```
 
-每个成员可以携带不同类型、不同数量的数据。配合 `match` 的**穷尽性检查**
-（漏处理一个成员就编译失败），重构时非常安全：
+Cada variante pode carregar dados de tipos e quantidades diferentes. Combinado com a **verificação de exaustividade** do `match`
+(esquecer de tratar uma variante faz a compilação falhar), a refatoração fica muito segura:
 
 ```rust
 match self.transact(id, Instruction::Ping, &[], true) {
@@ -304,10 +306,10 @@ match self.transact(id, Instruction::Ping, &[], true) {
 }
 ```
 
-### 6.4 Option：消灭空指针 —— `src/registers.rs` 的 `find_register`
+### 6.4 Option: acabando com o ponteiro nulo —— `find_register` em `src/registers.rs`
 
-“查找可能失败”在 Rust 里返回 `Option<&Register>`（`Some(x)` 或 `None`），
-而不是 null。调用者必须显式处理 None 的情况，编译器强制保证：
+"Uma busca que pode falhar" retorna em Rust `Option<&Register>` (`Some(x)` ou `None`),
+e não null. O chamador deve tratar explicitamente o caso None, e o compilador garante isso à força:
 
 ```rust
 let reg = find_register(name).ok_or_else(|| {
@@ -315,22 +317,22 @@ let reg = find_register(name).ok_or_else(|| {
 })?;  // 找不到就把 None 转成 Err 并返回
 ```
 
-命令行里“可选参数”（如 `goto --speed`）也是 `Option<i64>`：
-给了是 `Some(值)`，没给是 `None`，用 `if let Some(s) = speed { ... }` 处理。
+Os "parâmetros opcionais" da linha de comando (como `goto --speed`) também são `Option<i64>`:
+se fornecido, é `Some(valor)`; se não, `None`, tratado com `if let Some(s) = speed { ... }`.
 
-### 6.5 所有权与借用：串口独占的语言级保证 —— `src/servo.rs`
+### 6.5 Propriedade e empréstimo: a garantia, em nível de linguagem, do acesso exclusivo à serial —— `src/servo.rs`
 
-Rust 的核心规则：
+As regras centrais do Rust:
 
-1. 每个值有且只有一个**所有者**（owner），所有者离开作用域，值被自动释放；
-2. 可以有任意多个**不可变借用**（`&T`），或**一个**可变借用（`&mut T`），二选一；
-3. 借用不能超过所有者的生命周期。
+1. Cada valor tem um e somente um **dono** (owner), e quando o dono sai do escopo o valor é liberado automaticamente;
+2. Pode haver qualquer número de **empréstimos imutáveis** (`&T`), ou **um** empréstimo mutável (`&mut T`), um ou outro;
+3. Um empréstimo não pode durar mais que o tempo de vida do dono.
 
-串口句柄被 `Servo` 结构体**拥有**；所有操作方法都要求 `&mut self`。
-编译器因此保证：同一时刻只有一处代码能操作串口。
-**“多线程同时写串口导致报文交错”这类在 C 里常见的 bug，在 Rust 里根本编译不过。**
+O handle da serial é **possuído** pela struct `Servo`; todos os métodos de operação exigem `&mut self`.
+Por isso o compilador garante que, a cada instante, só um trecho de código pode operar a serial.
+**Bugs comuns em C como "várias threads escrevendo na serial ao mesmo tempo e intercalando mensagens" simplesmente não compilam em Rust.**
 
-### 6.6 结构体与 impl —— `src/servo.rs`
+### 6.6 Structs e impl —— `src/servo.rs`
 
 ```rust
 pub struct Servo {          // 数据
@@ -345,17 +347,17 @@ impl Servo {                // 行为（方法）
 }
 ```
 
-`&self`（只读借用）/ `&mut self`（可变借用）/ `self`（拿走所有权）三种接收者，
-把“这个方法会不会修改对象”写进了函数签名，调用方一眼可见。
+Os três tipos de receptor, `&self` (empréstimo somente leitura) / `&mut self` (empréstimo mutável) / `self` (toma a propriedade),
+colocam na assinatura da função "este método modifica ou não o objeto", visível de relance pelo chamador.
 
-### 6.7 trait 与 trait 对象 —— `Box<dyn SerialPort>`
+### 6.7 trait e objetos trait —— `Box<dyn SerialPort>`
 
-trait 类似 Java/Go 的接口。`serialport` 库在 Linux/Windows/macOS 上串口是不同类型，
-但都实现了 `SerialPort` trait。`Box<dyn SerialPort>` 表示
-“堆上一个实现了该 trait 的值”，我们只通过 trait 定义的方法使用它。
-这让代码跨平台且不依赖具体类型。
+Um trait é semelhante a uma interface de Java/Go. Na biblioteca `serialport`, a serial é de tipos diferentes em Linux/Windows/macOS,
+mas todos implementam o trait `SerialPort`. `Box<dyn SerialPort>` significa
+"na heap, um valor que implementa esse trait", e só o usamos pelos métodos definidos pelo trait.
+Isso torna o código multiplataforma e independente de tipos concretos.
 
-### 6.8 迭代器与闭包 —— 散落各处
+### 6.8 Iteradores e closures —— espalhados por toda parte
 
 ```rust
 // protocol.rs：折叠求和（闭包 |acc, &b| ... 捕获环境）
@@ -368,9 +370,9 @@ let list: Vec<String> = found.iter().map(|id| id.to_string()).collect();
 let ids: Result<Vec<u8>, _> = ids.split(',').map(|s| s.trim().parse::<u8>()).collect();
 ```
 
-迭代器是**零成本抽象**：编译后等价于手写 for 循环，没有运行时开销。
+Iteradores são uma **abstração de custo zero**: depois de compilados equivalem a um laço for escrito à mão, sem custo em tempo de execução.
 
-### 6.9 derive 宏与 clap —— `src/main.rs`
+### 6.9 Macros derive e clap —— `src/main.rs`
 
 ```rust
 #[derive(Parser)]                    // 让 clap 自动实现参数解析
@@ -381,11 +383,11 @@ struct Cli {
 }
 ```
 
-`#[derive(...)]` 是“派生宏”：编译期由宏自动生成代码。
-本项目中 `Debug`（自动实现调试打印）、`Clone/Copy`（自动实现拷贝）、
-`Error`（thiserror 自动实现错误 trait）、`Parser/Subcommand/ValueEnum`（clap）都是它。
+`#[derive(...)]` é uma "macro derivada": em tempo de compilação a macro gera código automaticamente.
+Neste projeto, `Debug` (implementa automaticamente a impressão de depuração), `Clone/Copy` (implementa automaticamente a cópia),
+`Error` (o thiserror implementa automaticamente o trait de erro) e `Parser/Subcommand/ValueEnum` (clap) são todos assim.
 
-### 6.10 单元测试 —— 各文件底部 `#[cfg(test)] mod tests`
+### 6.10 Testes unitários —— `#[cfg(test)] mod tests` no final de cada arquivo
 
 ```rust
 #[cfg(test)]           // 只在 cargo test 时编译，发布版本不含
@@ -399,29 +401,29 @@ mod tests {
 }
 ```
 
-运行 `cargo test` 即可。纯逻辑层（协议、内存表）的测试不需要硬件。
+Basta executar `cargo test`. Os testes das camadas de lógica pura (protocolo, tabela de memória) não precisam de hardware.
 
-### 6.11 常用小技巧速查
+### 6.11 Referência rápida de pequenos truques
 
-| 写法 | 含义 | 出处 |
+| Escrita | Significado | Onde aparece |
 |------|------|------|
-| `wrapping_add` | 溢出回绕的加法（校验和需要模 256） | protocol.rs |
-| `u16::from_le_bytes([a, b])` | 两字节按小端拼成 u16 | servo.rs |
-| `to_le_bytes()` | u16 拆成小端字节数组 | servo.rs |
-| `Vec::with_capacity(n)` | 预分配容量，避免反复扩容 | protocol.rs |
-| `format!` / `println!` 内联变量 `{value}` | Rust 2021 的字符串插值 | 各处 |
-| `.expect("...")` | 确定不会失败时解包，失败 panic 并带消息 | servo.rs |
-| `matches!(x, Err(...))` | 判断值是否匹配某个模式 | protocol.rs 测试 |
-| `&[u8]` vs `Vec<u8>` | 切片借用 vs 拥有所有权的数组 | 函数参数设计 |
+| `wrapping_add` | Soma com retorno em caso de estouro (o checksum precisa de módulo 256) | protocol.rs |
+| `u16::from_le_bytes([a, b])` | Junta dois bytes em little-endian em um u16 | servo.rs |
+| `to_le_bytes()` | Divide um u16 em um array de bytes little-endian | servo.rs |
+| `Vec::with_capacity(n)` | Pré-aloca capacidade, evitando expansões repetidas | protocol.rs |
+| `format!` / `println!` com variável inline `{value}` | Interpolação de strings do Rust 2021 | vários |
+| `.expect("...")` | Desembrulha quando se tem certeza de que não falha; se falhar, dá panic com mensagem | servo.rs |
+| `matches!(x, Err(...))` | Verifica se o valor casa com um padrão | testes de protocol.rs |
+| `&[u8]` vs `Vec<u8>` | Slice emprestado vs array que possui a propriedade | projeto dos parâmetros de função |
 
 ---
 
-## 7. 命令完整参考
+## 7. Referência completa dos comandos
 
-> 所有写操作默认**只改内存（掉电恢复）**；EPROM 区域的寄存器加 `--save` 才掉电保存
-> （自动执行 解锁→写入→上锁）。这是保护 EPROM 寿命的设计。
+> Todas as operações de escrita, por padrão, **só alteram a memória (voltam ao original ao desligar)**; para registradores da região EPROM, só com `--save` há persistência ao desligar
+> (executa automaticamente destravar→escrever→travar). Esse é um projeto para proteger a vida útil da EPROM.
 
-### 查询类
+### Consultas
 
 ```bash
 feetech-HD1910M-tester scan                          # 扫描 ID 0~253（带进度条）
@@ -435,7 +437,7 @@ feetech-HD1910M-tester monitor                       # 实时监控（Ctrl+C 停
 feetech-HD1910M-tester monitor --interval 50 --count 100
 ```
 
-### 通用写（覆盖内存表所有可写寄存器）
+### Escrita genérica (cobre todos os registradores graváveis da tabela de memória)
 
 ```bash
 feetech-HD1910M-tester set <寄存器> <值>             # 写内存（立即生效，掉电恢复）
@@ -445,9 +447,9 @@ feetech-HD1910M-tester action                        # 广播触发所有缓存�
 feetech-HD1910M-tester swrite 1,2,3 goal-pos 2048    # 同步写：多个舵机同一寄存器
 ```
 
-例：`set deadband-cw 3`、`set integral-limit 10 --save`、`set min-start-force 20`。
+Exemplos: `set deadband-cw 3`, `set integral-limit 10 --save`, `set min-start-force 20`.
 
-### ID / 波特率 / 锁 / 出厂复位
+### ID / baud rate / trava / reset de fábrica
 
 ```bash
 feetech-HD1910M-tester set-id 2              # 把 ID 从当前值改为 2（自动保存，改完用 -i 2 连接）
@@ -457,7 +459,7 @@ feetech-HD1910M-tester lock off              # 解锁：EPROM 写入掉电保存
 feetech-HD1910M-tester factory-reset         # 恢复出厂设置（慎用！ID 回 1，波特率回 1M）
 ```
 
-### 运动控制
+### Controle de movimento
 
 ```bash
 feetech-HD1910M-tester mode 0                        # 位置伺服模式（0~4，含义见 4.4 节）
@@ -467,7 +469,7 @@ feetech-HD1910M-tester torque on / off / damp        # 扭矩开关 / 松轴 / �
 feetech-HD1910M-tester speed 1000                    # 运行速度（恒速模式下 BIT15 决定方向）
 ```
 
-### 力矩 / 力控
+### Torque / controle de força
 
 ```bash
 feetech-HD1910M-tester torque-limit 500      # 转矩限制 50%（0~1000 = 0~100%）
@@ -477,7 +479,7 @@ feetech-HD1910M-tester set protect-current 300 --save # 保护电流 ≈ 1.95A�
 feetech-HD1910M-tester set min-start-force 20 --save  # 最小启动力 2%
 ```
 
-### PID 调参（三个环）
+### Ajuste de PID (três malhas)
 
 ```bash
 feetech-HD1910M-tester pid position --kp 40 --kd 8            # 位置环，写 EPROM 配置（本次有效）
@@ -487,7 +489,7 @@ feetech-HD1910M-tester pid velocity --kp 60 --ki 20           # 速度环（恒�
 feetech-HD1910M-tester pid current --kp 200 --ki 50           # 电流环（力控核心）
 ```
 
-### 保护与限位
+### Proteção e limites
 
 ```bash
 feetech-HD1910M-tester protect --max-temp 80                          # 过温阈值 80°C
@@ -503,20 +505,20 @@ feetech-HD1910M-tester zero --to 1024                                 # 或标�
 
 ---
 
-## 8. 实验教程（动手做）
+## 8. Tutorial de experimentos (mão na massa)
 
-> 按顺序做，每个实验都有“观察点”。全程建议加 `-v` 看报文。
+> Faça em ordem; cada experimento tem "pontos de observação". Recomenda-se acrescentar `-v` o tempo todo para ver as mensagens.
 
-### 实验 1：通信握手与协议观察
+### Experimento 1: handshake de comunicação e observação do protocolo
 
 ```bash
 feetech-HD1910M-tester -v get pos
 ```
 
-观察点：发送包 `FF FF 01 04 02 38 02 ...` 中 `02` 是 READ 指令、`38` 是起始地址 56、
-`02` 是读 2 字节；应答包里能找到当前位置的小端字节。手算校验和验证。
+Pontos de observação: no pacote enviado `FF FF 01 04 02 38 02 ...`, o `02` é a instrução READ, o `38` é o endereço inicial 56,
+e o `02` é a leitura de 2 bytes; no pacote de resposta é possível encontrar os bytes little-endian da posição atual. Verifique o checksum calculando à mão.
 
-### 实验 2：读懂内存表
+### Experimento 2: entender a tabela de memória
 
 ```bash
 feetech-HD1910M-tester dump
@@ -524,7 +526,7 @@ feetech-HD1910M-tester get mode        # 看当前运行模式（出厂 = 4 纯�
 feetech-HD1910M-tester get status      # 状态字的中文解析
 ```
 
-### 实验 3：扭矩开关与手动示教
+### Experimento 3: chave de torque e ensino manual
 
 ```bash
 feetech-HD1910M-tester torque off      # 松轴，用手转动舵机
@@ -533,9 +535,9 @@ feetech-HD1910M-tester torque damp     # 阻尼模式：再用手转，有明显
 feetech-HD1910M-tester torque on       # 恢复扭矩
 ```
 
-### 实验 3.5：零位校准（把当前机械位置设为中位）
+### Experimento 3.5: calibração do zero (definir a posição mecânica atual como ponto médio)
 
-机械装配后零位往往对不上舵机中位 2048，这时用零位校准（等同飞特 FD 软件的“设置零位”）：
+Depois da montagem mecânica, o zero muitas vezes não coincide com o ponto médio 2048 do servo; nesse caso usa-se a calibração do zero (equivalente ao "definir zero" do software FD da Feetech):
 
 ```bash
 feetech-HD1910M-tester torque off      # 1. 松轴
@@ -544,11 +546,11 @@ feetech-HD1910M-tester zero            # 3. 立即校准：当前位置被标定
 feetech-HD1910M-tester torque on       # 4. 恢复扭矩（校准后当前读数已是 2048，不会跳变）
 ```
 
-观察点：命令会自动回读“当前位置 + 31 号位置偏移”确认校准生效。
-注意 HD-1910（HLS 系固件）**不支持**老式“扭矩开关写 128”的校准方式（写了也回成功但不生效），
-必须用 `zero` 命令对应的 0x0B 位置校准指令。多圈模式下不要校准。
+Pontos de observação: o comando relê automaticamente "posição atual + deslocamento de posição do endereço 31" para confirmar que a calibração surtiu efeito.
+Atenção: o HD-1910 (firmware da série HLS) **não suporta** o método antigo de calibração "escrever 128 na chave de torque" (escrever também responde sucesso mas não surte efeito);
+é preciso usar o comando de calibração de posição 0x0B correspondente ao comando `zero`. Não calibre no modo multivoltas.
 
-### 实验 4：位置运动与反馈
+### Experimento 4: movimento de posição e realimentação
 
 ```bash
 feetech-HD1910M-tester monitor --count 100 &          # 后台监视（或另开终端）
@@ -556,10 +558,10 @@ feetech-HD1910M-tester goto 1024 --speed 300
 feetech-HD1910M-tester goto 3072 --speed 1000
 ```
 
-观察点：`moving` 标志在运动时变 1；速度先升后降（梯形规划）；
-到位后位置稳定在目标 ±1（不灵敏区的作用）。
+Pontos de observação: a flag `moving` vira 1 durante o movimento; a velocidade primeiro sobe e depois cai (planejamento trapezoidal);
+ao chegar, a posição se estabiliza no alvo ±1 (efeito da zona morta).
 
-### 实验 5：PID 调参（运行区，安全可逆）
+### Experimento 5: ajuste de PID (região de execução, seguro e reversível)
 
 ```bash
 # Kp 调小 → 动作变软、到位慢
@@ -574,7 +576,7 @@ feetech-HD1910M-tester goto 3072
 feetech-HD1910M-tester pid position --kp 32 --kd 40 --ram
 ```
 
-### 实验 6：力控（目标电流限制）
+### Experimento 6: controle de força (limite de corrente-alvo)
 
 ```bash
 feetech-HD1910M-tester mode 0                 # 位置伺服模式（位置+限流）
@@ -584,7 +586,7 @@ feetech-HD1910M-tester goto 2048
 feetech-HD1910M-tester goal-current 500       # 恢复（≈3.25A 上限）
 ```
 
-### 实验 7：保护功能
+### Experimento 7: funções de proteção
 
 ```bash
 feetech-HD1910M-tester protect --max-temp 40  # 温度阈值调低到 40°C
@@ -592,7 +594,7 @@ feetech-HD1910M-tester protect --max-temp 40  # 温度阈值调低到 40°C
 feetech-HD1910M-tester protect --max-temp 80  # 玩完记得调回来
 ```
 
-### 实验 8：EPROM 锁机制验证
+### Experimento 8: verificação do mecanismo de trava da EPROM
 
 ```bash
 feetech-HD1910M-tester set resp-level 1       # 不加 --save：只改内存
@@ -604,7 +606,7 @@ feetech-HD1910M-tester set min-angle 10 --save
 feetech-HD1910M-tester set min-angle 0 --save # 实验完恢复
 ```
 
-### 实验 9：改 ID（多舵机组网的第一步）
+### Experimento 9: trocar o ID (o primeiro passo para montar uma rede de vários servos)
 
 ```bash
 feetech-HD1910M-tester set-id 2               # 当前舵机变成 ID 2
@@ -612,7 +614,7 @@ feetech-HD1910M-tester -i 2 dump              # 用新 ID 连接
 feetech-HD1910M-tester -i 2 set-id 1          # 改回来（单舵机练习时）
 ```
 
-### 实验 10：异步写与同步写（多舵机同步，需 2 台以上）
+### Experimento 10: escrita assíncrona e escrita síncrona (sincronização de vários servos, exige 2 ou mais)
 
 ```bash
 feetech-HD1910M-tester -i 1 set goal-pos 1024 --defer   # 缓存，不动
@@ -622,42 +624,42 @@ feetech-HD1910M-tester action                            # 广播：两台同时
 
 ---
 
-## 9. 安全注意事项
+## 9. Precauções de segurança
 
-1. **堵转会发热**：长时间堵转电流可达 1.6A，温度上升很快。做力控实验时
-   用 `torque-limit` 或 `goal-current` 限制输出，monitor 关注温度。
-2. **EPROM 寿命**：约 10 万次擦写。调参阶段一律用 `--ram` 或不带 `--save`，
-   确定后再保存。不要在循环里 `--save`！
-3. **相位寄存器（18 号）**：控制电机方向/编码器方向等底层配置，
-   乱改会导致舵机失控乱转。除非你完全理解文档 3.1 节，否则不要碰。
-4. **改 ID / 波特率前**：确认你能用新参数重新连上（记下来！）。
-   忘了的话用 `factory-reset` 或逐波特率扫描找回。
-5. **机械安装**：实验时舵机别带负载悬空甩动，避免打到手或甩飞零件。
+1. **O travamento esquenta**: em travamento prolongado a corrente pode chegar a 1,6A, e a temperatura sobe muito rápido. Em experimentos de controle de força,
+   limite a saída com `torque-limit` ou `goal-current` e fique de olho na temperatura no monitor.
+2. **Vida útil da EPROM**: cerca de 100 mil ciclos de escrita/apagamento. Na fase de ajuste, use sempre `--ram` ou não use `--save`,
+   e só salve depois de definido. Nunca use `--save` dentro de um laço!
+3. **Registrador de fase (endereço 18)**: controla configurações de baixo nível como direção do motor/direção do encoder;
+   mexer sem cuidado faz o servo perder o controle e girar descontrolado. A menos que você entenda completamente a seção 3.1 da documentação, não toque.
+4. **Antes de alterar o ID / baud rate**: confirme que consegue se reconectar com os novos parâmetros (anote!).
+   Se esquecer, use `factory-reset` ou faça uma varredura baud rate por baud rate para recuperar.
+5. **Instalação mecânica**: durante os experimentos, não deixe o servo com carga balançando no ar, para evitar bater na mão ou arremessar peças.
 
 ---
 
-## 10. 常见问题排查
+## 10. Solução de problemas comuns
 
-| 现象 | 排查 |
+| Sintoma | Investigação |
 |------|------|
-| `响应超时` | ①舵机供了电没？②GND 共地没？③波特率对吗（默认 1M，改过用 `-b`）？④ID 对吗（`scan` 找）？⑤TX/RX 短接接法要加 `--echo` |
-| `串口错误: Permission denied` | 把用户加入 dialout 组：`sudo usermod -aG dialout $USER`，重新登录 |
-| `校验和错误` | 线路干扰/接触不良，检查杜邦线；或波特率不匹配 |
-| scan 扫不到但确定在线 | 用 `-t 30` 加长超时；逐波特率试：`-b 115200 scan` 等 |
-| 舵机报错“过流” | 重新发一次位置指令可清除；长期对策：调低 protect-current 或 torque-limit |
-| 改了配置重启后没了 | EPROM 写入要加 `--save`（锁机制，见 4.2 节） |
-| 位置读数是怪异的负大数 | 不会发生了——但要知道原因：符号-幅值编码被误当补码（见 4.3 节） |
+| `响应超时` | ① O servo está alimentado? ② Há terra comum? ③ O baud rate está certo (padrão 1M, se foi alterado use `-b`)? ④ O ID está certo (procure com `scan`)? ⑤ Na ligação com TX/RX curto-circuitados é preciso `--echo` |
+| `串口错误: Permission denied` | Adicione o usuário ao grupo dialout: `sudo usermod -aG dialout $USER`, e faça login de novo |
+| `校验和错误` | Interferência na linha / mau contato, verifique os fios dupont; ou baud rate incompatível |
+| O scan não acha mas se tem certeza de que está online | Use `-t 30` para alongar o timeout; teste baud rate por baud rate: `-b 115200 scan` etc. |
+| O servo acusa "sobrecorrente" | Reenviar um comando de posição limpa; solução de longo prazo: reduzir protect-current ou torque-limit |
+| A configuração alterada sumiu após reiniciar | A escrita na EPROM exige `--save` (mecanismo de trava, veja a seção 4.2) |
+| A leitura de posição é um estranho número negativo grande | Não acontece mais —— mas saiba o motivo: a codificação sinal-magnitude foi confundida com complemento de dois (veja a seção 4.3) |
 
 ---
 
-## 附：推荐学习路径
+## Apêndice: trilha de estudo recomendada
 
-1. 先跑通实验 1~4，对协议和内存表建立直觉；
-2. 通读 `src/protocol.rs`（最短，200 行），理解组包/解包；
-3. 读 `src/registers.rs`，理解“把文档表格变成代码”的思路；
-4. 读 `src/servo.rs`，重点理解 `&mut self`、Result、`?` 的串联；
-5. 读 `src/main.rs`，看 clap 声明式 CLI 和 match 分发；
-6. 改代码练手：给 `dump` 加“只显示与出厂值不同的寄存器”功能；
-   或加一个 `wave` 子命令让舵机正弦摆动并用 monitor 观察。
+1. Primeiro faça os experimentos 1~4 funcionarem, criando intuição sobre o protocolo e a tabela de memória;
+2. Leia `src/protocol.rs` por inteiro (o mais curto, 200 linhas), entendendo a montagem/desmontagem de pacotes;
+3. Leia `src/registers.rs`, entendendo a ideia de "transformar a tabela do documento em código";
+4. Leia `src/servo.rs`, com foco em entender o encadeamento de `&mut self`, Result e `?`;
+5. Leia `src/main.rs`, vendo a CLI declarativa do clap e o despacho por match;
+6. Altere o código para praticar: acrescente ao `dump` a função "mostrar só os registradores diferentes do valor de fábrica";
+   ou acrescente um subcomando `wave` que faça o servo oscilar senoidalmente, observando com o monitor.
 
-祝学习愉快！
+Bom estudo!

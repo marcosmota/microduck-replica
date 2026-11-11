@@ -1,52 +1,54 @@
-# 工具导航
+# Índice de ferramentas
 
-[返回首页](../README.md#资料导航) · [完整文档](../docs/README.md) · [English](README.en.md)
+> 🌐 Tradução não oficial para pt-BR do [original](https://github.com/fanhao375/microduck-replica). Em caso de divergência, vale o original. Licença: CC BY-NC-SA 4.0 (texto alterado: traduzido do chinês/inglês).
 
-日常配网、标定和遥控使用 [Studio](../software/studio/README.md)。这里按烧卡、串口调试、飞特资料和开发分析整理工具。
+[Início](../README.md#navegação-da-documentação) · [Toda a documentação](../docs/README.md) · [English](README.en.md)
 
-## 1. 烧卡与 Windows 工具
+Use o [Studio](../software/studio/README.md) para a configuração rotineira de Wi-Fi, calibração e controle. Esta página agrupa ferramentas de gravação, depuração serial, referências da Feetech e análise para desenvolvedores. A maioria dos guias linkados está em chinês.
 
-| 要做什么 | 下载或入口 | 说明 |
+## 1. Gravação e ferramentas para Windows
+
+| Tarefa | Download ou ponto de entrada | Observações |
 |---|---|---|
-| 烧录鸭子镜像 | **[Rufus 4.15 便携版 EXE](rufus/rufus-4.15p.exe)** · [使用步骤](rufus/README.md) | Windows x64，免安装；另附原版源码、许可与校验值 |
-| 调试飞特舵机 | **[FD 1.9.8.5 压缩包](飞特/FD1.9.8.5%28250729%29.7z)** · [使用说明](飞特/README.md) | 解压后运行 FD，配置 ID、参数并读回状态 |
-| 收发原始串口数据 | [飞特官方仓库的 UartAssist.zip](https://gitee.com/ftservo/fddebug/blob/master/UartAssist.zip) | 通用串口助手；需按设备协议发送数据 |
-| 串口转接板识别异常 | [CH343 / CH340 驱动入口](飞特/README.md#驱动与串口助手) | 先在设备管理器确认转接芯片型号 |
+| Gravar a imagem do pato | **[Rufus 4.15 portátil (EXE)](rufus/rufus-4.15p.exe)** · [Instruções](rufus/README.md) | Windows x64; fonte original, licença e checksums incluídos |
+| Depurar servos Feetech | **[Arquivo do FD 1.9.8.5](飞特/FD1.9.8.5%28250729%29.7z)** · [Instruções](飞特/README.md) | Extraia e execute o FD para configurar IDs e parâmetros e ler o estado |
+| Enviar dados seriais brutos | [UartAssist.zip no repositório da Feetech](https://gitee.com/ftservo/fddebug/blob/master/UartAssist.zip) | Assistente serial genérico; envie dados conforme o protocolo do dispositivo |
+| Corrigir o reconhecimento do adaptador | [Links dos drivers CH343 / CH340](飞特/README.md#驱动与串口助手) | Primeiro confirme o modelo do chip do adaptador no Gerenciador de Dispositivos |
 
-### 串口参数怎么选
+### Configurações seriais
 
-| 场景 | 常用设置 | 操作说明 |
+| Conexão | Configuração típica | Guia |
 |---|---|---|
-| 主板 USB 串口登录 | 115200，8N1 | [主板连接说明](radxa/镜像使用说明.md)；用于系统终端 |
-| 本项目已配置的飞特舵机总线 | 1000000，8N1 | [舵机调试说明](飞特/README.md)；舵机另行供电，使用对应 TTL 转接板 |
+| Terminal serial USB da placa principal | 115200, 8N1 | [Guia de conexão da placa](radxa/镜像使用说明.md) |
+| Barramento Feetech configurado para este projeto | 1000000, 8N1 | [Guia dos servos](飞特/README.md); use um adaptador TTL adequado e alimentação separada para os servos |
 
-8N1 指 8 个数据位、无校验、1 个停止位；若设备改过波特率，以实际配置为准。
+8N1 significa 8 bits de dados, sem paridade e 1 bit de parada. Use o baud rate real do dispositivo caso ele tenha sido alterado.
 
-## 2. 飞特官方资料与 SDK
+## 2. Referências e SDKs da Feetech
 
-**[飞特资料索引](../docs/飞特资料/README.md)**：官网现行手册、仓库离线副本、型号规格书和 SDK 的统一入口。
+O [índice de referências da Feetech](../docs/飞特资料/README.md) reúne links para os manuais oficiais atuais, cópias offline datadas, especificações dos modelos e SDKs.
 
-- 协议与内存表：[SCS 通信协议](http://doc.feetech.cn/#/f?q=2506ba160b93) · [STS 内存表](http://doc.feetech.cn/#/f?q=2506abfb1cb0) · [SMS 内存表](http://doc.feetech.cn/#/f?q=2602a06ca658)。官网版本核对日期为 2026-10-25，离线副本日期单独标明。
-- 官方 SDK：[Python](https://gitee.com/ftservo/FTServo_Python) · [Linux](https://gitee.com/ftservo/FTServo_Linux) · [Arduino](https://gitee.com/ftservo/FTServo_Arduino) · [STM32 HAL](https://gitee.com/ftservo/FTServo_stm32HAL)。
+- Protocolos: [SCS](http://doc.feetech.cn/#/f?q=2506ba160b93) · [mapa de registradores STS](http://doc.feetech.cn/#/f?q=2506abfb1cb0) · [mapa de registradores SMS](http://doc.feetech.cn/#/f?q=2602a06ca658). Versões oficiais verificadas em 2026-10-25; as cópias offline mantêm datas de snapshot próprias.
+- SDKs oficiais: [Python](https://gitee.com/ftservo/FTServo_Python) · [Linux](https://gitee.com/ftservo/FTServo_Linux) · [Arduino](https://gitee.com/ftservo/FTServo_Arduino) · [STM32 HAL](https://gitee.com/ftservo/FTServo_stm32HAL).
 
-## 3. 本仓调试工具
+## 3. Ferramentas de depuração do repositório
 
-| 工具 | 仓库位置 | 用途 |
+| Ferramenta | Local no repositório | Finalidade |
 |---|---|---|
-| 网页舵机调试台 | [tools/servo-web/](servo-web/README.md) | 串口调试、读回状态、姿态与序列、3D 显示；支持模拟模式 |
-| HD1910M 测试工具 | [tools/FeeTech_HD1910M_Servo/](FeeTech_HD1910M_Servo/README.md) | Rust 命令行：扫描、寄存器读取与配置、监控；按该型号内存表使用 |
-| STS3215 测试工具 | [tools/sts3215Servo_testtool/](sts3215Servo_testtool/README.md) | Rust 命令行：扫描、读状态、单颗与批量测试；面向 STS3215 |
-| 总线 IMU 协议检查 | [tools/imu200/](imu200/) | [imu200.py](imu200/imu200.py)：模拟、测试向量与真板检查；针对飞特地址 56 的 15 字节块，协议见[总线说明](../hardware/imu_to_dxl/总线协议.md) |
+| Console web de servos | [tools/servo-web/](servo-web/README.md) | Depuração serial, leitura de estado, poses, sequências e exibição 3D; inclui modo de simulação |
+| Testador HD1910M | [tools/FeeTech_HD1910M_Servo/](FeeTech_HD1910M_Servo/README.md) | CLI em Rust para varredura, registradores, configuração e monitoramento; usa o mapa de registradores deste modelo |
+| Testador STS3215 | [tools/sts3215Servo_testtool/](sts3215Servo_testtool/README.md) | CLI em Rust para varredura, leitura de estado e testes individuais ou em lote; voltado ao STS3215 |
+| Verificação do protocolo do IMU de barramento | [tools/imu200/](imu200/) | [imu200.py](imu200/imu200.py): simulação, vetores de teste e verificações na placa real para o bloco de 15 bytes no endereço 56 da Feetech; veja o [protocolo do barramento](../hardware/imu_to_dxl/总线协议.md) |
 
-## 4. 记录与分析
+## 4. Gravação de dados e análise
 
-| 工具 | 仓库位置 | 用途 |
+| Ferramenta | Local no repositório | Finalidade |
 |---|---|---|
-| 步态分析 | [tools/gait-analysis/](gait-analysis/README.md) | 在电脑上分析 JSONL 记录的跟踪误差、颤动和脚部运动 |
-| 主板采集与分析 | [tools/radxa/onboard-analysis/](radxa/onboard-analysis/README.md) | 采集关节、IMU、指令等记录，配合实机调试 |
-| 折叠接触分析 | [tools/fold_contact/](fold_contact/README.md) | 根据上游仿真几何分析零件接触，作为标定研究参考 |
-| 装配图与孔位分析脚本 | [scripts/](../scripts/) | 生成装配图、导出分析网格和扫描孔位；[重现步骤](../docs/项目研究归档.md#重现) |
+| Análise de marcha | [tools/gait-analysis/](gait-analysis/README.md) | Analisa no computador gravações JSONL: erro de rastreamento, vibração e movimento dos pés |
+| Gravação e análise a bordo | [tools/radxa/onboard-analysis/](radxa/onboard-analysis/README.md) | Grava juntas, IMU e comandos para depuração no robô real |
+| Análise de contato de dobra | [tools/fold_contact/](fold_contact/README.md) | Investiga o contato entre peças usando a geometria da simulação do upstream |
+| Desenhos de montagem e análise de furos | [scripts/](../scripts/) | Gera desenhos, exporta malhas de análise e varre características dos furos; veja os [comandos de reprodução](../docs/项目研究归档.md#reprodução) |
 
-## 5. 历史做卡脚本
+## 5. Scripts antigos de preparação do cartão
 
-[tools/radxa/](radxa/README.md) 保留早期做卡、引导与联网调试脚本。当前整套镜像的构建入口是 [software/image/](../software/image/README.md)，首次烧卡请看[使用指南](../docs/上手指南/README.md)。
+[tools/radxa/](radxa/README.md) preserva scripts antigos de preparação do cartão, bootloader e depuração de rede. A imagem completa atual é construída a partir de [software/image/](../software/image/README.md); ao gravar um cartão, comece pelo [guia de primeiro uso](../docs/上手指南/README.md).

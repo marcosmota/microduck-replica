@@ -1,77 +1,79 @@
-# 新版硬件（2026-10）
+# Hardware da nova versão (2026-10)
 
-三块板，都是嘉立创 EDA 专业版工程（`.eprj2`，原理图和 PCB 在同一个文件里）。一块板一个文件夹：
+> 🌐 Tradução não oficial para pt-BR do [original](https://github.com/fanhao375/microduck-replica). Em caso de divergência, vale o original. Licença: CC BY-NC-SA 4.0 (texto alterado: traduzido do chinês/inglês).
 
-| 文件夹 | 是什么 | 状态（2026-10-20） |
+Três placas, todas projetos do EasyEDA (LCSC) edição Pro (`.eprj2`, com esquemático e PCB no mesmo arquivo). Uma pasta por placa:
+
+| Pasta | O que é | Estado (2026-10-20) |
 |---|---|---|
-| [`imu_to_dxl_1V0A/`](imu_to_dxl_1V0A/) | 总线 IMU 板 v2。老版和固件在 [`../imu_to_dxl/`](../imu_to_dxl/) | 布线完成，DRC 只剩安装孔重复定义 12 条（不影响做板）；还没到货实测 |
-| [`wire_hub_1V0A/`](wire_hub_1V0A/) | 舵机总线 HUB：电池进线 + 总线分线 | 还没打样；CN1 高度待换 |
-| [`POGO_PIN_1V0A/`](POGO_PIN_1V0A/) | 接电池板：两个香蕉座 + 焊线盘 | 孔、焊盘、走线都按参考板改完；还没打样 |
+| [`imu_to_dxl_1V0A/`](imu_to_dxl_1V0A/) | Placa IMU de barramento v2. A versão antiga e o firmware estão em [`../imu_to_dxl/`](../imu_to_dxl/) | Roteamento concluído; o DRC só acusa 12 definições duplicadas de furos de fixação (não afeta a fabricação); ainda não chegou para teste |
+| [`wire_hub_1V0A/`](wire_hub_1V0A/) | HUB do barramento de servos: entrada da bateria + derivação do barramento | Protótipo ainda não feito; altura do CN1 precisa ser trocada |
+| [`POGO_PIN_1V0A/`](POGO_PIN_1V0A/) | Placa de conexão da bateria: dois bornes banana + pads de solda de fio | Furos, pads e trilhas ajustados conforme a placa de referência; protótipo ainda não feito |
 
-每个文件夹里：
+Em cada pasta:
 
-- `<板名>.eprj2`：工程
-- `<板名>-PCB.step`：整板 3D，给机械对结构
-- `<板名>-原理图.pdf`：目前只有 IMU 板有
+- `<nome da placa>.eprj2`: o projeto
+- `<nome da placa>-PCB.step`: modelo 3D da placa inteira, para a equipe de mecânica verificar a estrutura
+- `<nome da placa>-原理图.pdf`: por enquanto só existe para a placa IMU
 
-Gerber、BOM、接线表还没出，老版的样子见 [`../imu_to_dxl/`](../imu_to_dxl/)。
+Gerber, BOM e tabela de ligação ainda não foram gerados; para ter uma ideia, veja a versão antiga em [`../imu_to_dxl/`](../imu_to_dxl/).
 
-## imu_to_dxl_1V0A：总线 IMU 板 v2
+## imu_to_dxl_1V0A: placa IMU de barramento v2
 
-功能和老版一样：LSM6DSV16X 挂在 STM32G031 上，MCU 把自己当成总线上的一个从机，跟舵机走同一条单线半双工总线。协议、固件见 [`../imu_to_dxl/`](../imu_to_dxl/)。电路照老版，重新布了局、换了接头。
+A função é a mesma da versão antiga: um LSM6DSV16X ligado a um STM32G031, e o MCU se apresenta como um escravo no barramento, usando o mesmo barramento half-duplex de fio único dos servos. Protocolo e firmware em [`../imu_to_dxl/`](../imu_to_dxl/). O circuito segue o da versão antiga, com novo layout e conectores trocados.
 
-| 位号 | 型号 | 作用 |
+| Posição | Modelo | Função |
 |---|---|---|
-| U1 | STM32G031F8P6 | 主控 |
+| U1 | STM32G031F8P6 | MCU |
 | U2 | LSM6DSV16XTR | IMU |
-| U3 | SN74LVC2G241DCUR | 半双工总线收发 |
-| U4 | HT7533-1 | 3.3 V LDO |
-| F1 / D1 | MF-NSMF020X-2 / SMF12A | 自恢复保险丝 / TVS |
-| D2 | BZT52C5V1 | 总线数据线 5.1 V 钳位 |
-| R6 | 0 Ω（C21189） | 总线串联电阻，首板是 150 Ω |
-| J1 | A2007WR-3P | 舵机总线，2.0 mm 3P 弯插。1 = DXL_BUS，2 = VDD_BUS，3 = GND |
-| J2 | BM03B-ACHSS-GAN-ETF | 1.2 mm ACH 3P 卧贴。1 = GND，2 = VDD_BUS，3 = DXL_BUS |
-| J3 | PZ254V-11-06P | 2.54 mm 6P 调试口：1 = GND，2 = SWDCLK，3 = SWDIO，4 = UART_RX，5 = UART_TX，6 = 3.3V |
+| U3 | SN74LVC2G241DCUR | Transceptor half-duplex do barramento |
+| U4 | HT7533-1 | LDO de 3,3 V |
+| F1 / D1 | MF-NSMF020X-2 / SMF12A | Fusível rearmável / TVS |
+| D2 | BZT52C5V1 | Grampo de 5,1 V na linha de dados do barramento |
+| R6 | 0 Ω (C21189) | Resistor em série do barramento; na primeira placa era 150 Ω |
+| J1 | A2007WR-3P | Barramento de servos, 2,0 mm 3P, ângulo reto com pinos. 1 = DXL_BUS, 2 = VDD_BUS, 3 = GND |
+| J2 | BM03B-ACHSS-GAN-ETF | ACH de 1,2 mm 3P, montagem horizontal SMD. 1 = GND, 2 = VDD_BUS, 3 = DXL_BUS |
+| J3 | PZ254V-11-06P | Porta de depuração 2,54 mm 6P: 1 = GND, 2 = SWDCLK, 3 = SWDIO, 4 = UART_RX, 5 = UART_TX, 6 = 3.3V |
 
-另有 0402/0603 阻容若干，共 24 个元件。
+Há ainda alguns resistores e capacitores 0402/0603, totalizando 24 componentes.
 
-和老版比：
+Comparação com a versão antiga:
 
-- 老版舵机座 `B3B-PH-K-S` 插不进飞特线的插头（老版 README 里有记录），这版换成 A2007WR-3P
-- 去掉了外部晶振 X1（固件本来就用内部 HSI16），固件 0.2.0 不用改就能烧
-- R6 从 150 Ω 改成 0 Ω：总线上每颗舵机都有上拉，并起来以后串电阻会把低电平抬高。到货先量一下回包时的总线低电平
-- U2 转了 180°、板形也变了，装上鸭子以后 IMU 轴的映射要重定。固件输出芯片原始姿态不做旋转，所以只改上位机的安装旋转，三个姿态静置验收
-- 老版 README 记的 v2 待办里，**复位按钮和运行指示灯这版没有**
-- J3 在 PCB 里没有 3D 模型，导出的 STEP 里缺这一颗排针
+- O conector de servo da versão antiga, `B3B-PH-K-S`, não aceitava o plugue do cabo da Feetech (registrado no README da versão antiga); esta versão usa o A2007WR-3P
+- O cristal externo X1 foi removido (o firmware já usava o HSI16 interno), então o firmware 0.2.0 pode ser gravado sem alterações
+- R6 passou de 150 Ω para 0 Ω: cada servo no barramento tem pull-up, e, combinados em paralelo, um resistor em série elevaria o nível baixo. Ao receber a placa, meça primeiro o nível baixo do barramento durante a resposta
+- U2 foi girado 180° e o formato da placa mudou; depois de instalada no pato, o mapeamento dos eixos do IMU precisa ser redefinido. O firmware emite a atitude bruta do chip sem rotação, então só a rotação de montagem no lado do computador host precisa mudar, com aceitação em três posturas estáticas
+- Dos itens pendentes da v2 registrados no README da versão antiga, **o botão de reset e o LED de funcionamento não existem nesta versão**
+- O J3 não tem modelo 3D no PCB, então o STEP exportado está sem esse conector de pinos
 
-## wire_hub_1V0A：总线 HUB
+## wire_hub_1V0A: HUB do barramento
 
-没有有源器件，只有连接器。所有连接器都只走 `Battery`、`DXL_BUS`、`GND` 三个网络。
+Não há componentes ativos, apenas conectores. Todos os conectores usam somente as três redes `Battery`, `DXL_BUS` e `GND`.
 
-| 位号 | 型号 | 规格 |
+| Posição | Modelo | Especificação |
 |---|---|---|
-| J1 | HC-1.2-3PWT | 1.2 mm 3P 卧贴（Pico-EZmate 兼容），1.5 A |
-| J2 | BM03B-ACHSS-GAN-ETF | 1.2 mm ACH 3P 卧贴，2 A |
-| J3、J4 | A2007WR-3P | 2.0 mm 3P 弯插，4 A |
-| J5、J6 | A2007WV-3P | 2.0 mm 3P 直插，4 A |
-| CN1 | DB125-2.54-2P-GN-S | 电池进线，绿色螺钉端子，7 A，**板上高 8.4 mm** |
+| J1 | HC-1.2-3PWT | 1,2 mm 3P horizontal SMD (compatível com Pico-EZmate), 1,5 A |
+| J2 | BM03B-ACHSS-GAN-ETF | ACH de 1,2 mm 3P horizontal SMD, 2 A |
+| J3, J4 | A2007WR-3P | 2,0 mm 3P, ângulo reto com pinos, 4 A |
+| J5, J6 | A2007WV-3P | 2,0 mm 3P, vertical com pinos, 4 A |
+| CN1 | DB125-2.54-2P-GN-S | Entrada da bateria, borne de parafuso verde, 7 A, **altura de 8,4 mm sobre a placa** |
 
-脚序和 IMU 板对得上：HUB 的 J1、J2 和 IMU 板 J2 都是 1 = GND、2 = 电源、3 = DXL_BUS，用同向线直连；HUB 的 J3–J6 和 IMU 板 J1 都是 1 = DXL_BUS、2 = 电源、3 = GND。
+A ordem dos pinos coincide com a da placa IMU: J1 e J2 do HUB e o J2 da placa IMU têm 1 = GND, 2 = alimentação, 3 = DXL_BUS, e ligam-se com cabos de mesmo sentido; J3–J6 do HUB e o J1 da placa IMU têm 1 = DXL_BUS, 2 = alimentação, 3 = GND.
 
-待办：
+Pendências:
 
-- CN1 太高，跟结构干涉，那个位置只能放 5 mm 左右高的东西。候选：4 mm 间距的贴片按压端子（WAGO 2060 那种，高 4.5 mm），或者不放端子直接焊线
+- O CN1 é alto demais e interfere com a estrutura; naquela posição só cabe algo com cerca de 5 mm de altura. Candidatos: um borne de pressão SMD de passo 4 mm (do tipo WAGO 2060, com 4,5 mm de altura) ou não colocar borne e soldar o fio direto
 
-## POGO_PIN_1V0A：接电池板
+## POGO_PIN_1V0A: placa de conexão da bateria
 
-外形和孔照参考板 banana_pcb（KiCad 工程，只有 Gerber）改的。板子 39.19 × 6.79 mm。
+O contorno e os furos foram adaptados da placa de referência banana_pcb (projeto KiCad, só com Gerber). A placa mede 39,19 × 6,79 mm.
 
-| 位置 | 网络 | 尺寸 |
+| Posição | Rede | Dimensões |
 |---|---|---|
-| U2（左） | GND | 香蕉座孔 Ø1.7 mm 金属化，焊盘 Ø3.2 mm |
-| U1（右） | Battery | 同上，两孔中心距 33.8 mm |
-| 中间两块焊盘 | 左 GND，右 Battery | 顶层贴片盘 2.4 × 4.4 mm，间距 4.0 mm，无孔，焊线用 |
+| U2 (esquerda) | GND | Furo do borne banana Ø1,7 mm metalizado, pad Ø3,2 mm |
+| U1 (direita) | Battery | Igual; distância entre centros dos dois furos de 33,8 mm |
+| Dois pads centrais | Esquerdo GND, direito Battery | Pads SMD na camada superior de 2,4 × 4,4 mm, espaçamento de 4,0 mm, sem furo, para solda de fio |
 
-两块焊盘的位置也照参考板：GND 盘离左孔 10.98 mm、Battery 盘离左孔 14.98 mm，都比两孔连线低 0.59 mm。4.0 mm 间距正好也能直接贴一个 4 mm 间距的按压端子。
+A posição dos dois pads também segue a placa de referência: o pad de GND fica a 10,98 mm do furo esquerdo e o de Battery a 14,98 mm do furo esquerdo, ambos 0,59 mm abaixo da linha que liga os dois furos. O espaçamento de 4,0 mm também permite colar diretamente um borne de pressão de passo 4 mm.
 
-工程名叫 POGO_PIN，但板上已经没有弹簧针了，就是焊线盘。
+O projeto se chama POGO_PIN, mas a placa já não tem pogo pins; são apenas pads de solda de fio.

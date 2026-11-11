@@ -1,22 +1,24 @@
-# 打印文件统一到 CAD 仓库下载
+# Arquivos de impressão unificados para download no repositório CAD
 
-**简体中文** · [English](README.en.md)
+> 🌐 Tradução não oficial para pt-BR do [original](https://github.com/fanhao375/microduck-replica). Em caso de divergência, vale o original. Licença: CC BY-NC-SA 4.0 (texto alterado: traduzido do chinês/inglês).
 
-**模型、结构件和打印工程统一维护在 [fanhao375/microduck-replica-cad](https://github.com/fanhao375/microduck-replica-cad)。请从那里选择与你的舵机对应的版本。**
+**Português (BR)** · [English](README.en.md)
 
-| 使用的舵机 | 下载入口 |
+**Modelos, peças estruturais e projetos de impressão são mantidos de forma unificada em [fanhao375/microduck-replica-cad](https://github.com/fanhao375/microduck-replica-cad). Escolha lá a versão correspondente ao seu servo.**
+
+| Servo utilizado | Onde baixar |
 |---|---|
-| 飞特 HD-1910 | [CAD 仓库 · 飞特打印资料专区](https://github.com/fanhao375/microduck-replica-cad#飞特-hd-1910-打印资料)：3MF 打印工程、CAD 源文件与更新说明 |
-| Dynamixel XL330 | [CAD 仓库 · XL330 打印资料专区](https://github.com/fanhao375/microduck-replica-cad#dynamixel-xl330-打印资料)：对应 CAD 源文件与打印说明 |
-| 飞特版采购清单 | [在线预览](../BOM/README.md)，含材料、数量、价格记录和采购链接 |
-| 装配步骤 | [CAD 仓库装配资料](https://github.com/fanhao375/microduck-replica-cad#装配资料与采购清单) |
+| Feetech HD-1910 | [Repositório CAD · seção de materiais de impressão Feetech](https://github.com/fanhao375/microduck-replica-cad#飞特-hd-1910-打印资料): projeto de impressão 3MF, fontes CAD e notas de atualização |
+| Dynamixel XL330 | [Repositório CAD · seção de materiais de impressão XL330](https://github.com/fanhao375/microduck-replica-cad#dynamixel-xl330-打印资料): fontes CAD e instruções de impressão correspondentes |
+| Lista de compras da versão Feetech | [Prévia online](../BOM/README.md), com materiais, quantidades, registro de preços e links de compra |
+| Passos de montagem | [Materiais de montagem do repositório CAD](https://github.com/fanhao375/microduck-replica-cad#装配资料与采购清单) |
 
-**不要混用飞特和 XL330 的配合件。** 两种舵盘结构不同；本仓之前的 STL 来自上游 XL330 仿真模型，没有同步飞特改件。
+**Não misture peças de encaixe Feetech e XL330.** As duas estruturas de horn do servo são diferentes; os STL anteriores deste repositório vinham do modelo de simulação XL330 do upstream, sem as modificações da versão Feetech.
 
-2026-09-28 已从本目录移除旧 STL，避免下载后直接误打。旧文件仍可在 Git 历史中追溯，但不再作为当前打印包提供；主仓不再维护第二份模型下载副本。
+Em 2026-09-28, os STL antigos foram removidos deste diretório para evitar que fossem impressos por engano logo após o download. Os arquivos antigos ainda podem ser consultados no histórico do Git, mas não são mais fornecidos como pacote de impressão atual; este repositório não mantém mais uma segunda cópia dos modelos para download.
 
-各版本的最新文件、更新日期、打印材料和轮滑变体说明统一查看 CAD 仓库对应专区。SolidWorks / STEP 是 CAD 源文件，3MF 是打印工程；切片前请核对舵机版本、打印机和材料。
+Os arquivos mais recentes de cada versão, as datas de atualização, os materiais de impressão e as notas sobre a variante com rodas devem ser consultados sempre na seção correspondente do repositório CAD. SolidWorks / STEP são arquivos-fonte de CAD, e 3MF é o projeto de impressão; antes de fatiar, confira a versão do servo, a impressora e o material.
 
-主仓 `software/training/` 和网页调试台中保留的网格用于仿真及显示，**不是打印来源**。本次调整没有把这些模型、质量或惯量同步为最新实物 CAD。
+As malhas mantidas em `software/training/` deste repositório e no console de depuração web servem para simulação e exibição, **não são fonte de impressão**. Este ajuste não sincronizou esses modelos, massas ou inércias com o CAD físico mais recente.
 
-图纸由 **机械行者Robo** 建模整理，依据上游模型采用 **CC BY-NC-SA 4.0**；作者、许可及后续版本以 [CAD 仓库](https://github.com/fanhao375/microduck-replica-cad) 为准。
+Os desenhos foram modelados e organizados por **机械行者Robo**, adotando **CC BY-NC-SA 4.0** com base no modelo do upstream; autoria, licença e versões posteriores valem conforme o [repositório CAD](https://github.com/fanhao375/microduck-replica-cad).

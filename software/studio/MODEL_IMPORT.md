@@ -1,28 +1,30 @@
-# 导入训练好的模型
+# Importar um modelo treinado
 
-打开 Studio 的「模型管理」，不用重新烧系统镜像。
+> 🌐 Tradução não oficial para pt-BR do [original](https://github.com/fanhao375/microduck-replica). Em caso de divergência, vale o original. Licença: CC BY-NC-SA 4.0 (texto alterado: traduzido do chinês/inglês).
 
-1. 在训练电脑上找到同一次部署导出的模型目录。
-2. 将 `policy.onnx`、`manifest.json`、`deployment-contract.json` 打成 ZIP、tar.gz 或 tgz。若导出时有 `deployment-execution.json`、`deployment-runtime.json`、`model-info.json`，也放在同一目录。不要混入训练日志、脚本或多个模型。
-3. 选择部署包，可填写显示名称，点「导入模型」。部署包上限 64 MiB；展开后上限 256 MiB。
-4. 导入通过只表示已经安装。先卸力，再在模型卡片选择用途，点「使用此模型」。页面等主程序确认实际模型路径后才显示成功。
-5. 需要动作键时，点模型的「设置按键」，按一次实体手柄的动作键，或在「手柄按键」下拉框选择；占用的键需要确认替换。走路仍使用原来的站、走控制。
+Abra a "Gestão de modelos" do Studio, sem precisar regravar a imagem do sistema.
 
-单独一个 ONNX 文件缺少动作用途、关节顺序、站姿和运行参数，不能直接当成兼容部署包。Studio 会检查文件身份和合同，再调用本机 `robotd validate-policy` 预检 ONNX。没有可用的预检程序时会拒绝导入，不会把解压成功当成兼容。
+1. No computador de treinamento, localize o diretório do modelo exportado da mesma implantação.
+2. Empacote `policy.onnx`, `manifest.json` e `deployment-contract.json` em ZIP, tar.gz ou tgz. Se na exportação houver `deployment-execution.json`, `deployment-runtime.json` e `model-info.json`, coloque-os também no mesmo diretório. Não misture logs de treinamento, scripts nem vários modelos.
+3. Escolha o pacote de implantação, opcionalmente informe um nome de exibição e clique em "Importar modelo". O limite do pacote de implantação é 64 MiB; depois de expandido, 256 MiB.
+4. Importação bem-sucedida significa apenas que foi instalado. Primeiro libere o torque, depois escolha a finalidade no cartão do modelo e clique em "Usar este modelo". A página só mostra sucesso depois que o programa principal confirma o caminho real do modelo.
+5. Quando precisar de botão de ação, clique em "Definir botão" do modelo e aperte uma vez o botão de ação do controle (gamepad) físico, ou escolha na lista suspensa "Botão do controle"; um botão ocupado exige confirmação para substituição. A caminhada continua usando o controle original de ficar em pé e andar.
 
-当前运行程序的基础站姿和舵机 P 参数在启动时确定。与现有基础站姿、P 参数或关节顺序不同的模型不能直接热切换，页面会给出原因；需要先完成相应的部署适配。
+Um arquivo ONNX isolado, sem finalidade de ação, ordem das juntas, postura em pé e parâmetros de execução, não pode ser tomado diretamente como pacote de implantação compatível. O Studio verifica a identidade do arquivo e o contrato, e depois chama o `robotd validate-policy` local para pré-verificar o ONNX. Sem um verificador prévio utilizável, a importação é recusada, e não se trata a descompactação bem-sucedida como compatibilidade.
 
-## 模型、动作、按键的关系
+A postura em pé base e o parâmetro P dos servos do programa em execução atual são determinados na inicialização. Modelos diferentes da postura em pé base, do parâmetro P ou da ordem das juntas existentes não podem ser trocados a quente diretamente, e a página dá o motivo; é preciso antes concluir a adaptação de implantação correspondente.
 
-- 「已安装」：模型文件在库里；「当前选用」：该用途已经选择这个模型；「正在执行」：主程序正在运行它。
-- 按键绑定到动作，动作使用当前选中的模型。可设置的键为 A、X、LB、RB、十字下。走路和独立站立不作为普通动作键绑定。
-- 实体按键录入需确认已卸力、五键配置完整且为常规动作，并等待配置稳定两秒；若有直接起身等特殊动作绑定，使用下拉框分配，避免录入按键同时触发原动作。
-- 「取消绑定」只清除该按键；「恢复默认按键」恢复五个键的默认动作，都不会删除模型。
-- 「恢复内置」把某个用途切回初次记录的默认模型，导入模型仍留在库里。
-- 内置默认不能删除。导入模型仍被当前用途引用时不能删除，先切换其他模型或恢复内置。
+## Relação entre modelo, ação e botão
 
-导入文件和显示名称存放于 Studio 的 state 目录；鸭子上通常是 `/var/lib/microduck-studio`。升级 Studio 时保留这个目录。默认模型文件保留在原安装位置。改名只改变显示名称，不改变模型身份。
+- "Instalado": o arquivo do modelo está na biblioteca; "Selecionado atualmente": essa finalidade já escolheu este modelo; "Em execução": o programa principal está executando-o.
+- O botão é vinculado à ação, e a ação usa o modelo atualmente selecionado. Os botões configuráveis são A, X, LB, RB, direcional para baixo. Caminhar e ficar em pé isolado não são vinculados como botões de ação comuns.
+- A captura de botão físico exige confirmar que o torque está liberado, que a configuração dos cinco botões está completa e é de ação comum, e esperar dois segundos de configuração estável; se houver vínculo de ação especial como levantar direto, use a lista suspensa para atribuir, evitando que a tecla capturada dispare também a ação original.
+- "Desvincular" só limpa esse botão; "Restaurar botões padrão" restaura as ações padrão dos cinco botões; nenhum dos dois exclui modelos.
+- "Restaurar embutido" volta uma finalidade ao modelo padrão registrado inicialmente, e o modelo importado continua na biblioteca.
+- O padrão embutido não pode ser excluído. Um modelo importado ainda referenciado por uma finalidade atual não pode ser excluído; primeiro troque para outro modelo ou restaure o embutido.
 
-## 开发验证
+Os arquivos importados e os nomes de exibição ficam no diretório state do Studio; no pato normalmente é `/var/lib/microduck-studio`. Ao atualizar o Studio, preserve esse diretório. Os arquivos do modelo padrão permanecem no local de instalação original. Renomear só muda o nome de exibição, não a identidade do modelo.
 
-`tests/test_models.py` 和 `tests/test_model_package.py` 使用临时模型和假主程序，不接触舵机。`tests/test_models_e2e.py` 使用真实 HTTP、部署包解析、模型库和无头 Edge，测试中的预检器与运行接口明确替换为本地测试实现。这些测试确认软件流程，不代替实际模型在硬件上的运动验收。
+## Validação de desenvolvimento
+
+`tests/test_models.py` e `tests/test_model_package.py` usam modelos temporários e um programa principal falso, sem tocar nos servos. `tests/test_models_e2e.py` usa HTTP real, análise de pacote de implantação, biblioteca de modelos e Edge headless; o pré-verificador e a interface de execução nos testes são explicitamente substituídos por implementações de teste locais. Esses testes confirmam o fluxo de software e não substituem a aceitação de movimento do modelo real em hardware.

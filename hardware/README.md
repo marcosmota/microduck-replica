@@ -1,17 +1,19 @@
-# 硬件工程
+# Engenharia de hardware
 
-三块自制电路板、瑞莎主控与官方开源 HAT 的统一入口。
+> 🌐 Tradução não oficial para pt-BR do [original](https://github.com/fanhao375/microduck-replica). Em caso de divergência, vale o original. Licença: CC BY-NC-SA 4.0 (texto alterado: traduzido do chinês/inglês).
 
-| 板卡 | 购买 / 工程入口 | 设计预览 | 资料 |
+Ponto de entrada único para as três placas de circuito feitas por conta própria, o controlador principal Radxa e o HAT oficial de código aberto.
+
+| Placa | Compra / projeto | Prévia do design | Materiais |
 |---|---|---|---|
-| **总线 IMU 板 v2** | [imu_to_dxl_1V0A](新版/imu_to_dxl_1V0A/) | [3D](../assets/hw/imu-to-dxl-1v0a-3d.png) · [PCB](../assets/hw/imu-to-dxl-1v0a-pcb.png) | 嘉立创 EDA 专业版工程、原理图 PDF、PCB STEP；[新版说明](新版/README.md) |
-| **舵机总线 HUB** | [wire_hub_1V0A](新版/wire_hub_1V0A/) | [3D](../assets/hw/wire-hub-1v0a-3d.png) · [PCB](../assets/hw/wire-hub-1v0a-pcb.png) | 嘉立创 EDA 专业版工程、PCB STEP；[新版说明](新版/README.md) |
-| **电池接口板** | [POGO_PIN_1V0A](新版/POGO_PIN_1V0A/) | [3D](../assets/hw/pogo-pin-1v0a-3d.png) · [PCB](../assets/hw/pogo-pin-1v0a-pcb.png) | 嘉立创 EDA 专业版工程、PCB STEP；[新版说明](新版/README.md) |
-| **瑞莎 Radxa ZERO 3W 主控** | [主控购买（淘宝）](https://item.taobao.com/item.htm?id=763812025816) | [官方板卡图](../assets/hw/radxa-zero3w-official.webp) | [官方资料](https://docs.radxa.com/en/zero/zero3) · [硬件设计文件](https://docs.radxa.com/en/zero/zero3/download#hardware-design)：原理图、2D 尺寸与 3D 模型 |
-| **官方 RPI Robot HAT** | [Pollen Robotics KiCad 工程](https://github.com/pollen-robotics/elec_RPI_Robot_HAT) | [官方设计图](../assets/hw/rpi-robot-hat-official.png) | [生产打样文件](https://github.com/pollen-robotics/elec_RPI_Robot_HAT/tree/main/production)：Gerber、BOM、贴片坐标、原理图与 STEP |
+| **Placa IMU de barramento v2** | [imu_to_dxl_1V0A](新版/imu_to_dxl_1V0A/) | [3D](../assets/hw/imu-to-dxl-1v0a-3d.png) · [PCB](../assets/hw/imu-to-dxl-1v0a-pcb.png) | Projeto no EasyEDA (LCSC) edição Pro, PDF do esquemático, STEP do PCB; [descrição da nova versão](新版/README.md) |
+| **HUB do barramento de servos** | [wire_hub_1V0A](新版/wire_hub_1V0A/) | [3D](../assets/hw/wire-hub-1v0a-3d.png) · [PCB](../assets/hw/wire-hub-1v0a-pcb.png) | Projeto no EasyEDA (LCSC) edição Pro, STEP do PCB; [descrição da nova versão](新版/README.md) |
+| **Placa de interface da bateria** | [POGO_PIN_1V0A](新版/POGO_PIN_1V0A/) | [3D](../assets/hw/pogo-pin-1v0a-3d.png) · [PCB](../assets/hw/pogo-pin-1v0a-pcb.png) | Projeto no EasyEDA (LCSC) edição Pro, STEP do PCB; [descrição da nova versão](新版/README.md) |
+| **Controlador principal Radxa ZERO 3W** | [Compra do controlador (Taobao)](https://item.taobao.com/item.htm?id=763812025816) | [Imagem oficial da placa](../assets/hw/radxa-zero3w-official.webp) | [Documentação oficial](https://docs.radxa.com/en/zero/zero3) · [Arquivos de projeto de hardware](https://docs.radxa.com/en/zero/zero3/download#hardware-design): esquemático, dimensões 2D e modelo 3D |
+| **RPI Robot HAT oficial** | [Projeto KiCad da Pollen Robotics](https://github.com/pollen-robotics/elec_RPI_Robot_HAT) | [Imagem oficial do design](../assets/hw/rpi-robot-hat-official.png) | [Arquivos de produção e protótipo](https://github.com/pollen-robotics/elec_RPI_Robot_HAT/tree/main/production): Gerber, BOM, coordenadas de pick-and-place, esquemático e STEP |
 
-各板的设计状态、接线和验证记录见对应工程说明。
+O estado do design, a ligação e os registros de validação de cada placa estão na descrição do respectivo projeto.
 
-[老版总线 IMU 板及固件](imu_to_dxl/README.md)保留电路工程、原理图、接线表、板上 BOM 与固件资料。
+A [placa IMU de barramento antiga e seu firmware](imu_to_dxl/README.md) preservam o projeto do circuito, o esquemático, a tabela de ligação, a BOM da placa e os materiais do firmware.
 
-[整机装配采购清单](../BOM/README.md) · [硬件入门](../docs/硬件入门.md) · [返回首页](../README.md)
+[Lista de compras da montagem do robô completo](../BOM/README.md) · [Introdução ao hardware](../docs/硬件入门.md) · [Voltar ao início](../README.md)

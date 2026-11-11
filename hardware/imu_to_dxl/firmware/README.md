@@ -1,232 +1,235 @@
-# imu_to_dxl 固件 0.2.0
+# Firmware 0.2.0 do imu_to_dxl
 
-用于队友自制的 **STM32G031F8P6 + LSM6DSV16X** 板。硬件基线为
-`fanhao375/microduck-replica` 的 `a1f4979c425bd9228622be89f2bfa4d1de7fbde3`
-（2026-09-08，含 J4/J5 和 RX_EN）。2026-09-20 已完成首次实板启动：J-Link SWD 连接、
-固件烧录读回校验、Keil 停在 `main`、64MHz 时钟及 IMU 采样均已验证。
-短测中 IMU 标识为 `0x70`、ready=1、SPI/FIFO 错误为0；外部总线和舵机尚未实测。
+> 🌐 Tradução não oficial para pt-BR do [original](https://github.com/fanhao375/microduck-replica). Em caso de divergência, vale o original. Licença: CC BY-NC-SA 4.0 (texto alterado: traduzido do chinês/inglês).
 
-**0.2.0（2026-09-22）把总线协议换成飞特 SCS/STS**，逐条按[总线协议](../总线协议.md)实现：ID 200、地址 56 的 15 字节块、sync_read 排队。IMU、板级和 Keil 工程未改。电脑上的主机测试和「真协议代码上模拟总线」的验收（`Tests/bus_sim_test.py`，用 [`tools/imu200`](../../../tools/imu200) 的 `check` 判据）全部通过；已烧进原开发板，IMU 照常工作。**真总线和舵机尚未实测。**
-构建、桌面测试与首次实板验证的边界见 [VALIDATION.md](VALIDATION.md)。
+Destinado à placa **STM32G031F8P6 + LSM6DSV16X** feita por um colega de equipe. A base de hardware é o
+commit `a1f4979c425bd9228622be89f2bfa4d1de7fbde3` de `fanhao375/microduck-replica`
+(2026-09-08, com J4/J5 e RX_EN). Em 2026-09-20 foi concluída a primeira inicialização em placa real: conexão SWD com J-Link,
+gravação do firmware com verificação de leitura, Keil parando em `main`, clock de 64MHz e amostragem do IMU, todos verificados.
+No teste curto, a identificação do IMU foi `0x70`, ready=1 e erros de SPI/FIFO iguais a 0; o barramento externo e os servos ainda não foram testados em campo.
 
-本目录与原理图、PCB 放在一起，提供源码、Keil 工程及唯一保留的预编译产物
-[`Build/imu_to_dxl.hex`](Build/imu_to_dxl.hex)。串口调试台 [`tools/servo-web`](../../../tools/servo-web)能在同一个网页中叠加舵机关节角和 IMU 躯干姿态，三种读法：`--imu-bus`（舵机总线，跟主控同一条 sync_read）、`--imu-swd`（ST-Link / DAPLink）、`--imu-jlink`（J-Link）。
+**A 0.2.0 (2026-09-22) troca o protocolo de barramento para Feetech SCS/STS**, implementado item por item conforme o [protocolo de barramento](../总线协议.md): ID 200, bloco de 15 bytes no endereço 56, enfileiramento do sync_read. O IMU, a camada de placa e o projeto Keil não foram alterados. Os testes de host no computador e a aceitação "código real do protocolo sobre barramento simulado" (`Tests/bus_sim_test.py`, usando os critérios do `check` de [`tools/imu200`](../../../tools/imu200)) passaram integralmente; já foi gravado na placa de desenvolvimento original e o IMU funciona normalmente. **O barramento real e os servos ainda não foram testados em campo.**
+Os limites entre compilação, testes de desktop e a primeira validação em placa real estão em [VALIDATION.md](VALIDATION.md).
 
-SWD / J-Link 观察器从 HEX 解码 `0x08000000` 起的 **10,724 字节** Flash 镜像，检查 SHA-256
-`66bc7c532f5a1ad87e3dfff71a4b51f8c4f20840a8f62436874fa5b7c665938e`，并校验板上镜像。
-只有这个基线可使用已审核的 RAM 布局：`sample=0x2000006C`（60 字节）、
-`tick=0x20000A34`（4 字节），按 0.2.0 的 MAP 核对过。仅使用姿态网页无需重新编译；改动固件后需重新审核
-Flash 校验值及这两个符号的地址、大小，不能沿用旧地址读取新程序。
+Este diretório fica junto do esquemático e do PCB, fornecendo o código-fonte, o projeto Keil e o único artefato pré-compilado mantido,
+[`Build/imu_to_dxl.hex`](Build/imu_to_dxl.hex). O console de depuração serial [`tools/servo-web`](../../../tools/servo-web) consegue, em uma mesma página web, sobrepor os ângulos das juntas dos servos e a atitude do tronco dada pelo IMU, com três formas de leitura: `--imu-bus` (barramento dos servos, no mesmo sync_read do controlador principal), `--imu-swd` (ST-Link / DAPLink), `--imu-jlink` (J-Link).
 
-源码断点调试需在自己的环境重新构建 `.axf`；构建仍生成 `.map`、`.bin` 供开发时复核，
-这些文件及测试产物由 `.gitignore` 排除，不提交到仓库。
+O observador SWD / J-Link decodifica do HEX a imagem de Flash de **10.724 bytes** a partir de `0x08000000`, confere o SHA-256
+`66bc7c532f5a1ad87e3dfff71a4b51f8c4f20840a8f62436874fa5b7c665938e` e valida a imagem na placa.
+Somente essa base pode usar o layout de RAM já revisado: `sample=0x2000006C` (60 bytes),
+`tick=0x20000A34` (4 bytes), conferidos contra o MAP da 0.2.0. Para usar apenas a página de atitude não é preciso recompilar; depois de alterar o firmware é preciso revisar de novo
+o valor de verificação da Flash e o endereço e tamanho desses dois símbolos, sem reaproveitar endereços antigos para ler um programa novo.
 
-数据流：LSM6DSV16X → SPI1 → STM32 → USART2 + 外部缓冲 → 单线半双工总线 → Linux 主控。
-实现**飞特 SCS/STS 协议，ID 200，1Mbps**，在舵机总线上冒充一颗舵机（0.1.0 是 Dynamixel Protocol 2.0）。
-代码不驱动舵机运动，不写 MCU Option Bytes，不写固件配置到 Flash。
+Para depurar o código-fonte com pontos de parada, é preciso reconstruir o `.axf` no seu próprio ambiente; a compilação ainda gera `.map` e `.bin` para conferência durante o desenvolvimento,
+e esses arquivos e os artefatos de teste são excluídos pelo `.gitignore`, sem ir para o repositório.
 
-**真总线验收**：接上半双工适配器（URT-2）跑 `python tools/imu200/imu200.py check --port COMx`，13 项判据照主控源码写，过了才能上整机。电气检查（DE 释放、电平、T_resp 实测）仍需逻辑分析仪。
+Fluxo de dados: LSM6DSV16X → SPI1 → STM32 → USART2 + buffer externo → barramento half-duplex de fio único → controlador principal Linux.
+Implementa o **protocolo Feetech SCS/STS, ID 200, 1Mbps**, fingindo ser um servo no barramento dos servos (a 0.1.0 era Dynamixel Protocol 2.0).
+O código não aciona movimento de servos, não escreve nos Option Bytes do MCU e não grava a configuração do firmware na Flash.
 
-## 1. 直接开始
+**Aceitação no barramento real**: ligue o adaptador half-duplex (URT-2) e rode `python tools/imu200/imu200.py check --port COMx`; os 13 critérios foram escritos conforme o código-fonte do controlador principal, e só depois de passar é que se pode ir para o robô completo. As verificações elétricas (liberação do DE, níveis, medição real do T_resp) ainda exigem um analisador lógico.
+
+## 1. Começar direto
 
 ### Keil
 
-1. 使用 J-Link 时，打开 `MDK-ARM/imu_to_dxl_jlink.uvprojx`。
-2. 在自己的 Keil 中选择已合法安装的 Arm Compiler 6（验证过 6.24 和 6.22；MDK 5.24 这类带 6.7 的老版本编不了，CMSIS 6 头文件要求 ≥ 6.10，会报 `cmsis_clang.h` 找不到）和 `STM32G031F8Px` 器件包。
-3. 按 **F7** 编译；`Build/imu_to_dxl.hex` 为烧录文件，`.axf` 用于源码断点调试。
-4. 在 Debug → Settings 中选择自己的 J-Link，核对 SWD、STM32G0xx 64KB Flash 算法和 Run to main。
-   `JLinkSettings.JLinkScript` 在连接和复位后将传输速度设为 **100kHz**；保留此文件。
-   首板曾在 4MHz 下载时出现数据传输失败，初次连接建议先使用已验证的 100kHz。
-5. 按 **Ctrl+F5** 进入调试并停在 `main`；**F10** 单步跳过、**F11** 单步进入、**F5** 运行。
-   暂停会改变采样和总线时序，连续通信测试时全速运行。
+1. Ao usar o J-Link, abra `MDK-ARM/imu_to_dxl_jlink.uvprojx`.
+2. No seu Keil, escolha o Arm Compiler 6 instalado legalmente (verificados 6.24 e 6.22; versões antigas como o MDK 5.24, com o 6.7, não compilam: os cabeçalhos do CMSIS 6 exigem ≥ 6.10, e dará erro de `cmsis_clang.h` não encontrado) e o pacote do dispositivo `STM32G031F8Px`.
+3. Pressione **F7** para compilar; `Build/imu_to_dxl.hex` é o arquivo de gravação, e o `.axf` serve para depuração do código-fonte com pontos de parada.
+4. Em Debug → Settings, escolha o seu J-Link e confira SWD, o algoritmo de Flash STM32G0xx de 64KB e Run to main.
+   O `JLinkSettings.JLinkScript` define a velocidade de transferência em **100kHz** após a conexão e o reset; mantenha esse arquivo.
+   A primeira placa teve falha de transferência de dados ao baixar a 4MHz; na primeira conexão, recomenda-se usar primeiro os 100kHz já verificados.
+5. Pressione **Ctrl+F5** para entrar na depuração e parar em `main`; **F10** passa por cima, **F11** entra na função, **F5** executa.
+   Pausar altera a amostragem e a temporização do barramento; em testes de comunicação contínua, execute em velocidade total.
 
-原 `MDK-ARM/imu_to_dxl.uvprojx` 的 ST-LINK 配置保留。更换 J-Link 时，应在 Debug → Settings
-重新选择探针。
+A configuração ST-LINK do `MDK-ARM/imu_to_dxl.uvprojx` original foi mantida. Ao trocar para um J-Link, em Debug → Settings
+escolha de novo a sonda.
 
 ### VS Code
 
-用 VS Code 打开这个文件夹编辑源码，在集成终端执行下面的构建命令。
-该路线使用 VS Code 编辑、Keil 编译与硬件调试；不需要再安装 CubeMX、CubeIDE 或 GCC 才能构建。
-源码自带必要 CMSIS 头文件和 ST IMU 驱动，首次构建无需联网下载依赖。
+Abra esta pasta no VS Code para editar o código-fonte e execute os comandos de compilação abaixo no terminal integrado.
+Esse caminho usa o VS Code para edição e o Keil para compilação e depuração em hardware; não é preciso instalar CubeMX, CubeIDE nem GCC para compilar.
+O código-fonte já traz os cabeçalhos CMSIS necessários e o driver do IMU da ST, então a primeira compilação não precisa baixar dependências pela rede.
 
-也可以在本目录的 PowerShell 终端执行：
+Também é possível executar, em um terminal PowerShell neste diretório:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Tools\build.ps1
 ```
 
-编译器默认路径 `E:\Keil_v5\ARM\ARMCLANG` 仅为示例。其他电脑用 `-ToolchainRoot` 指定已合法安装的 Arm Compiler。
-构建临时目录位于本工程 `Build` 下；操作系统和已有工具的授权缓存仍由各软件管理。
-构建会替换 `Build` 中的预编译固件；如需保持网页的已验证基线，请先保留原始产物。
+O caminho padrão do compilador `E:\Keil_v5\ARM\ARMCLANG` é apenas um exemplo. Em outros computadores, use `-ToolchainRoot` para indicar o Arm Compiler instalado legalmente.
+O diretório temporário de compilação fica em `Build`, dentro deste projeto; o sistema operacional e o cache de licenças das ferramentas existentes continuam sendo gerenciados por cada software.
+A compilação substitui o firmware pré-compilado em `Build`; para manter a base já verificada da página web, guarde antes o artefato original.
 
-## 2. 工程内容
+## 2. Conteúdo do projeto
 
-| 文件 | 内容 |
+| Arquivo | Conteúdo |
 |---|---|
-| `Core/Inc/board_config.h` | 集中的板级开关、时钟、波特率、SPI 速率 |
-| `Core/Src/board.c` | 时钟、GPIO、SPI、USART、SWD 保留、毫秒/微秒时基、看门狗 |
-| `Core/Src/imu.c` | 身份检查、初始化回读、FIFO、原始加速度/陀螺仪、SFLP、故障重试 |
-| `Core/Src/protocol.c` | 飞特 SCS/STS 从机：帧解析（按校验和重同步）、各指令应答、sync_read 排队、应答时序 |
-| `Core/Src/control_table.c` | 地址 56 的 15 字节块、状态位、诊断寄存器 |
-| `Core/Src/main.c` | 主循环调度、串口命令及状态日志 |
-| `Drivers/` | 固定版本的 ST/CMSIS 源码与许可证 |
-| `MDK-ARM/` | Keil 工程、链接布局和 J-Link 低速连接脚本 |
-| `Tests/` | 无板可运行的协议、模拟传感器、寄存器测试；`bus_sim_test.py` 把真协议代码编成 DLL 挂到模拟总线上跑验收 |
+| `Core/Inc/board_config.h` | Chaves de nível de placa centralizadas, clock, baud rate, taxa do SPI |
+| `Core/Src/board.c` | Clock, GPIO, SPI, USART, reserva do SWD, base de tempo em ms/µs, watchdog |
+| `Core/Src/imu.c` | Verificação de identidade, releitura da inicialização, FIFO, aceleração/giroscópio brutos, SFLP, nova tentativa em caso de falha |
+| `Core/Src/protocol.c` | Escravo Feetech SCS/STS: análise de quadros (ressincronização pelo checksum), resposta a cada instrução, enfileiramento do sync_read, temporização da resposta |
+| `Core/Src/control_table.c` | Bloco de 15 bytes no endereço 56, bits de estado, registradores de diagnóstico |
+| `Core/Src/main.c` | Escalonamento do laço principal, comandos seriais e log de estado |
+| `Drivers/` | Código-fonte ST/CMSIS em versão fixa e licenças |
+| `MDK-ARM/` | Projeto Keil, layout de link e script de conexão em baixa velocidade do J-Link |
+| `Tests/` | Testes de protocolo, sensor simulado e registradores que rodam sem a placa; o `bus_sim_test.py` compila o código real do protocolo em uma DLL e o conecta a um barramento simulado para executar a aceitação |
 
-无动态内存，无 RTOS，无 HAL 依赖。板级代码使用 ST 官方 CMSIS 寄存器定义；传感器使用官方平台无关驱动。
-STM32 的外部总线接收使用中断环形队列，每字节保存接收时刻；协议、采样和日志格式化运行在主循环。
-日志发送另用中断队列，不阻塞总线接收。
+Sem memória dinâmica, sem RTOS, sem dependência de HAL. O código de nível de placa usa as definições de registradores oficiais do CMSIS da ST; o sensor usa o driver oficial independente de plataforma.
+A recepção do barramento externo do STM32 usa uma fila circular por interrupção, guardando o instante de recepção de cada byte; o protocolo, a amostragem e a formatação do log rodam no laço principal.
+O envio do log usa uma fila por interrupção à parte, sem bloquear a recepção do barramento.
 
-## 3. 默认硬件配置
+## 3. Configuração de hardware padrão
 
-| 功能 | 芯片引脚 / 配置 |
+| Função | Pino do chip / configuração |
 |---|---|
-| MCU | STM32G031F8P6，TSSOP20，64KB Flash / 8KB RAM |
-| 系统时钟 | HSI16 → PLL，M=1、N=8、R=2，64MHz，Flash 2 wait states |
-| 外部时钟选项 | `BOARD_USE_HSE_BYPASS=1`，X1 16MHz 有源时钟接封装脚2；启动失败退回 HSI 路线并记录状态 |
-| IMU SPI | SPI1 mode3、8bit、软件 CS；64MHz 下 2MHz；PA4=CS、PA5=SCK、PA6=MISO、PA7=MOSI |
-| IMU INT | 首版轮询 FIFO，PA0/封装脚15中断信号暂不使用 |
-| 总线串口 | USART2，PA2=TX、PA3=RX，AF1，1Mbps、8N1；不启用 USART 单引脚 HDSEL |
-| 总线 DE | PA1 → U3.1 `1OE#`，**低有效**；GPIO 控制，等 USART TC 后才释放 |
-| 总线 RX_EN | PB7 → U3.7 `2OE`，**高有效**；发送期间关闭、PA3 上拉；同封装脚 PB8 保持模拟输入 |
-| 调试串口 | USART1，PA9/PA10 经 SYSCFG 重映射到封装脚16/17，115200、8N1；`BOARD_LOG_UART_SWAP=0` |
-| SWD | PA13=SWDIO、PA14=SWCLK，保留复位默认调试功能 |
-| 看门狗 | 默认开启，约2秒，LSI 误差影响实际时长；调试器暂停时冻结 |
+| MCU | STM32G031F8P6, TSSOP20, 64KB de Flash / 8KB de RAM |
+| Clock do sistema | HSI16 → PLL, M=1, N=8, R=2, 64MHz, Flash com 2 wait states |
+| Opção de clock externo | `BOARD_USE_HSE_BYPASS=1`, clock ativo de 16MHz do X1 ligado ao pino 2 do encapsulamento; se a partida falhar, volta à rota HSI e registra o estado |
+| SPI do IMU | SPI1 mode3, 8bit, CS por software; 2MHz a 64MHz; PA4=CS, PA5=SCK, PA6=MISO, PA7=MOSI |
+| INT do IMU | Na primeira versão faz polling do FIFO; o sinal de interrupção do PA0/pino 15 do encapsulamento não é usado por enquanto |
+| Serial do barramento | USART2, PA2=TX, PA3=RX, AF1, 1Mbps, 8N1; sem habilitar o HDSEL de pino único do USART |
+| DE do barramento | PA1 → U3.1 `1OE#`, **ativo em baixo**; controlado por GPIO, liberado só depois do USART TC |
+| RX_EN do barramento | PB7 → U3.7 `2OE`, **ativo em alto**; desligado durante a transmissão, PA3 com pull-up; o PB8 do mesmo pino do encapsulamento fica como entrada analógica |
+| Serial de depuração | USART1, PA9/PA10 remapeados via SYSCFG para os pinos 16/17 do encapsulamento, 115200, 8N1; `BOARD_LOG_UART_SWAP=0` |
+| SWD | PA13=SWDIO, PA14=SWCLK, mantendo as funções de depuração do reset padrão |
+| Watchdog | Ligado por padrão, cerca de 2 segundos, com o erro do LSI afetando a duração real; congelado quando o depurador pausa |
 
-PLL 启动异常时会保留 HSI16 运行，串口 BRR 和计时器按实际主频计算。此时 SPI 也降为 0.5MHz，
-服务延迟会增加，属于故障诊断模式，应检查时钟状态，不作为完成性能验收的配置。
+Se a partida do PLL falhar, o HSI16 continua em operação, e o BRR da serial e os temporizadores são calculados pela frequência real.
+Nesse caso o SPI também cai para 0,5MHz,
+e a latência de serviço aumenta; trata-se de um modo de diagnóstico de falha, que exige verificar o estado do clock e não serve como configuração para a aceitação de desempenho.
 
-### J3 接线必须以[原理图 PDF](../imu_to_dxl-原理图.pdf)和实板网络为准
+### A ligação do J3 deve seguir o [PDF do esquemático](../imu_to_dxl-原理图.pdf) e a rede da placa real
 
-| J3 脚号 | 最新原理图信号 | 接法 |
+| Pino do J3 | Sinal do esquemático mais recente | Ligação |
 |---|---|---|
-| 1 | GND | J-Link/ST-LINK/USB-TTL 共地 |
-| 2 | SWDCLK | J-Link/ST-LINK SWCLK |
-| 3 | SWDIO | J-Link/ST-LINK SWDIO |
-| 4 | UART_RX，U1封装脚17 | USB-TTL TX，3.3V 电平 |
-| 5 | UART_TX，U1封装脚16 | USB-TTL RX，3.3V 电平 |
-| 6 | 3.3V | 调试器电压参考；不要把 5V 接到这里 |
+| 1 | GND | Terra comum do J-Link/ST-LINK/USB-TTL |
+| 2 | SWDCLK | SWCLK do J-Link/ST-LINK |
+| 3 | SWDIO | SWDIO do J-Link/ST-LINK |
+| 4 | UART_RX, pino 17 do encapsulamento do U1 | TX do USB-TTL, nível de 3,3V |
+| 5 | UART_TX, pino 16 do encapsulamento do U1 | RX do USB-TTL, nível de 3,3V |
+| 6 | 3,3V | Referência de tensão do depurador; não ligue 5V aqui |
 
-J3 的 SWD 四根线使用 **1、2、3、6** 脚；不要将旧的四针排线整排插到1–4脚，
-第4脚是串口输入，不能当作供电或电压参考。首次上电先按焊盘/EDA 网络核实。
-J3 没有引出 NRST；如需 under-reset 连接，需在实际 NRST 测点另接。
-调试器若带电源输出，不要与另一电源盲目并联；先确认它是 VTref 输入还是电源输出。
+Os quatro fios do SWD do J3 usam os pinos **1, 2, 3 e 6**; não encaixe o cabo flat antigo de quatro pinos inteiro nos pinos 1–4,
+o pino 4 é entrada serial e não pode ser tratado como alimentação ou referência de tensão. Na primeira energização, confira antes pelos pads / pela rede do EDA.
+O J3 não expõe o NRST; se precisar de conexão under-reset, ligue separadamente no ponto de teste real do NRST.
+Se o depurador tiver saída de alimentação, não a coloque às cegas em paralelo com outra fonte; confirme antes se é entrada VTref ou saída de alimentação.
 
-J1/J2：1=GND、2=VDD_BUS、3=DATA；J4/J5：1=DATA、2=VDD_BUS、3=GND。
-总线测试需要单线半双工 USB 适配器；普通 USB-TTL 仅用于 J3 日志。
+J1/J2: 1=GND, 2=VDD_BUS, 3=DATA; J4/J5: 1=DATA, 2=VDD_BUS, 3=GND.
+Os testes de barramento exigem um adaptador USB half-duplex de fio único; um USB-TTL comum serve apenas para o log do J3.
 
-## 4. IMU 行为
+## 4. Comportamento do IMU
 
-- WHO_AM_I 应为 `0x70`。软件复位后按步骤配置，并回读 ODR、量程及 SFLP 使能。
-- 加速度 ±4g，0.122mg/LSB；陀螺仪 ±500dps，17.5mdps/LSB。
-- 加速度、陀螺仪、SFLP 和 FIFO 批处理均为120Hz，供50Hz主控读取。
-- FIFO 按标签区分加速度、陀螺仪和四元数；每轮最多16条，不假设三者在同一条记录中。
-- 初始化、SPI 失败、FIFO 溢出或数据过期时 `ready=0`；约1秒后自动重试。
-- gyro 或 quaternion 任一超过100ms未更新即失效。即使主循环忙、未执行采样轮询，读取快照也会再次检查年龄。
-- 读取接口保持一致快照，不在中断里更新姿态。传感器安装旋转留给主控，避免与官方坐标变换重复。
-- 本版不保存实测偏置；SFLP 从上电默认状态开始估计。六轴姿态不提供绝对航向参考。
+- O WHO_AM_I deve ser `0x70`. Após o reset por software, configura-se passo a passo e relêem-se ODR, faixa e a habilitação do SFLP.
+- Aceleração ±4g, 0,122mg/LSB; giroscópio ±500dps, 17,5mdps/LSB.
+- Aceleração, giroscópio, SFLP e processamento em lote do FIFO são todos a 120Hz, para a leitura a 50Hz do controlador principal.
+- O FIFO distingue aceleração, giroscópio e quaternion por etiqueta; no máximo 16 registros por rodada, sem supor que os três venham no mesmo registro.
+- Na inicialização, em falha de SPI, estouro do FIFO ou dados obsoletos, `ready=0`; após cerca de 1 segundo, nova tentativa automática.
+- Se o giroscópio ou o quaternion ficar mais de 100ms sem atualização, é invalidado. Mesmo que o laço principal esteja ocupado e sem executar o polling de amostragem, a leitura do snapshot confere a idade de novo.
+- A interface de leitura mantém um snapshot consistente, sem atualizar a atitude dentro da interrupção. A rotação de montagem do sensor fica com o controlador principal, evitando repetir a transformação de coordenadas oficial.
+- Esta versão não guarda viés medido; o SFLP começa a estimar do estado padrão de energização. A atitude de seis eixos não fornece referência absoluta de rumo.
 
-合法的单位姿态 `xyz=0,0,0` 与上游全零“未就绪”哨兵重合。已收到有效 FIFO 姿态时，仅将 x 的半精度
-编码设为 IEEE 负零 `0x8000`，数学数值仍为0；真正未就绪始终返回全零。详见驱动说明和回归测试。
+A pose unitária legítima `xyz=0,0,0` coincide com a sentinela de "não pronto" toda zero do upstream. Quando já se recebeu uma atitude válida do FIFO, apenas a codificação de meia precisão de x
+é definida como o zero negativo IEEE `0x8000`, com valor matemático ainda 0; o verdadeiro "não pronto" sempre devolve tudo zero. Detalhes na descrição do driver e nos testes de regressão.
 
-**运行时故障处理边界：** 已检查的官方主控在收到全零姿态后可能保留上次姿态，其 `ready()` 不会因此自动撤销。
-正式站立/运动联调前，主控应额外读取本版诊断 `ready`、采样计数和年龄，并执行失效处理。
-本版 PC 采集脚本已经读取这些字段；不能把“单板返回全零”当作整机已经具备自动停车行为。
+**Limite do tratamento de falhas em tempo de execução:** o controlador principal oficial examinado, ao receber atitude toda zero, pode manter a última atitude, e o seu `ready()` não é revogado automaticamente por isso.
+Antes da integração formal em pé/em movimento, o controlador principal deve ler adicionalmente o `ready`, o contador de amostras e a idade do diagnóstico desta versão, e executar o tratamento de invalidação.
+O script de coleta para PC desta versão já lê esses campos; não se deve tomar "a placa isolada devolve tudo zero" como se o robô completo já tivesse comportamento automático de parada.
 
-## 5. 通信与寄存器
+## 5. Comunicação e registradores
 
-帧格式 `FF FF ID LEN INSTR 参数… CHK`，`CHK = ~(ID+LEN+INSTR+Σ参数)`，没有字节填充，所以载荷里也会出现 `FF FF`：接收按长度收完再验校验和，校验错就丢一个字节重新找帧头，不会被载荷里的假帧头带偏。逐条行为见[总线协议 §8](../总线协议.md#8-其它指令怎么应答)：
+Formato do quadro `FF FF ID LEN INSTR parâmetros… CHK`, `CHK = ~(ID+LEN+INSTR+Σparâmetros)`, sem byte stuffing, de modo que `FF FF` também pode aparecer na carga útil: a recepção termina de receber conforme o comprimento e só então verifica o checksum; com checksum errado, descarta um byte e volta a procurar o cabeçalho do quadro, sem ser desviada por falsos cabeçalhos na carga útil. O comportamento de cada instrução está em [protocolo de barramento §8](../总线协议.md#8-como-responder-às-outras-instruções):
 
-| 指令 | 行为 |
+| Instrução | Comportamento |
 |---|---|
-| `SYNC_READ 0x82`（广播） | 自己在列表第 k 位：k=0 收完指令 50 µs 后发；k>0 等前面 k 个设备的应答帧（ID 在前面、长度对、第 5 字节不是指令码），前面有设备 1 ms 不出声就当它不在线跳过 |
-| `PING` / `READ`（单播） | 回状态帧 / 数据，ERROR 恒为 0；广播 PING 不答 |
-| `WRITE` / `REG_WRITE`（单播） | 回 ACK，内容一概忽略（主控从不写这块板） |
-| `ACTION` `0x06` `0x09` `0x0A` `0x0B`（单播） | ACK，不动作 |
-| `REBOOT 0x08` | 不答，真重启 |
-| `SYNC_WRITE`、别的广播 | 不答 |
+| `SYNC_READ 0x82` (broadcast) | Estando na posição k da lista: k=0 envia 50 µs depois de receber a instrução; k>0 espera os quadros de resposta dos k dispositivos anteriores (ID da frente, comprimento certo, 5º byte que não é código de instrução), e se um dispositivo da frente ficar 1 ms sem se manifestar, considera-o fora de linha e o pula |
+| `PING` / `READ` (unicast) | Responde com quadro de estado / dados, ERROR sempre 0; PING em broadcast não responde |
+| `WRITE` / `REG_WRITE` (unicast) | Responde com ACK, ignorando por completo o conteúdo (o controlador principal nunca escreve nesta placa) |
+| `ACTION` `0x06` `0x09` `0x0A` `0x0B` (unicast) | ACK, sem executar ação |
+| `REBOOT 0x08` | Não responde, reinicia de verdade |
+| `SYNC_WRITE`, outros broadcasts | Não responde |
 
-时序（全是推断值，待实测，见总线协议 §5/§12；50 µs 是协议逻辑里的数，加上解析和组包的 CPU 时间后真实值要逻辑分析仪量）：T_resp 50 µs；帧内字节间隙超过 500 µs 丢弃残帧；排队时总线静默 1 ms 认为前一个设备不在线；等不到轮次 25 ms 放弃；到点后晚 2 ms 还发不出去就放弃，避免在下一笔事务里抢总线。发送前再次原子检查新到达的 RX 数据、USART BUSY 和故障标志；忙时放弃这次应答。
-接收中断里只有**溢出（ORE）**才当总线故障清空收包；噪声 / 帧错标志只计数，字节照收，错了由校验和丢掉 —— 0.1.0 一律清空，一个字节带噪声标志就会把整条 sync_read 扔掉、这一 tick 15 颗舵机跟着丢（0.2.0 审查后改）。
+Temporização (todos valores inferidos, a medir; veja protocolo de barramento §5/§12; os 50 µs são o número da lógica do protocolo, e somando o tempo de CPU de análise e montagem do pacote o valor real precisa ser medido com um analisador lógico): T_resp 50 µs; descarta-se o quadro residual se a lacuna entre bytes dentro de um quadro passar de 500 µs; no enfileiramento, 1 ms de silêncio do barramento faz considerar o dispositivo anterior fora de linha; desiste se esperar 25 ms sem chegar a vez; se, passada a hora, ainda não conseguir enviar após 2 ms de atraso, desiste, para não disputar o barramento na transação seguinte. Antes de enviar, verifica-se de novo atomicamente os novos dados RX recebidos, o USART BUSY e a flag de falha; se ocupado, abandona essa resposta.
+Na interrupção de recepção, só o **estouro (ORE)** é tratado como falha do barramento e esvazia a fila de recepção; as flags de ruído / erro de quadro só contam, e os bytes são recebidos normalmente, com o erro sendo descartado pelo checksum —— a 0.1.0 esvaziava sempre, e um byte com flag de ruído jogava fora todo o sync_read, perdendo junto os 15 servos desse tick (alterado após a revisão da 0.2.0).
 
-**把 ID200 放在 Sync Read 列表第一位**，与官方 `bus.rs` 相同；放中间也能答（排队规则），但前面的设备缺席时主控侧的解析会错位，见总线协议 §2。
+**Coloque o ID200 na primeira posição da lista do Sync Read**, como no `bus.rs` oficial; no meio também consegue responder (regras de enfileiramento), mas quando o dispositivo da frente está ausente a análise do lado do controlador principal desalinha, veja protocolo de barramento §2.
 
-多字节字段全部小端。
+Todos os campos multibyte são little-endian.
 
-| 地址 | 字节数 | 内容 / 权限 |
+| Endereço | Nº de bytes | Conteúdo / permissão |
 |---|---:|---|
-| 0 / 1 | 各1 | 固件版本 0.2（主.次），不冒充舵机的 3.46 |
-| 2 | 1 | END = 0（小端） |
-| 3 | 2 | 自定义型号 `0x4D44` |
-| 5 / 6 / 8 | 各1 | ID 200 / 波特率 0（1Mbps）/ 应答状态级别 1 |
-| **56** | **15** | **主控每 tick 读的块**：gyro XYZ（int16，17.5 mdps/LSB）、四元数 XYZ（binary16）、采样计数（u8）、状态位、保留 0。原始轴序，不做坐标变换 |
-| 124 | 6 | gyro XYZ，三个 int16，±500dps（诊断，跟块里同一份） |
-| 130 | 6 | quaternion XYZ，三个 IEEE binary16；W由主控重建 |
-| 136 | 6 | 原始加速度 XYZ，三个 int16，±4g |
-| 142 | 1 | 姿态采样计数低8位 |
-| 143 | 1 | bit0=ready、bit1=configured、bit2=error |
-| 144 / 145 | 各1 | WHO_AM_I / 错误码 |
-| 146 / 147 | 各1 | 时钟状态 / 看门狗开关 |
-| 148 / 152 / 156 | 各4 | 姿态 / gyro / accel 采样计数 |
-| 160 / 164 / 168 | 各4 | uptime_ms / gyro年龄ms / 姿态年龄ms |
-| 172 / 176 / 180 / 184 | 各4 | SPI错误 / FIFO溢出 / 非法四元数 / 恢复次数 |
-| 188 / 192 / 196 / 200 | 各4 | RX队列溢出 / UART错误（噪声/帧错/溢出都计）/ 校验和错误 / 非法包 |
-| 204 / 208 / 212 / 216 | 各4 | 收包超时 / 有效收包数 / 实际发包数 / 取消应答数 |
-| 220 / 224 / 228 / 232 | 各4 | RCC复位原因原值 / 主频Hz / TX超时 / 日志丢弃数 |
-| 236 | 1 | 本项目诊断寄存器表版本 2（飞特协议，块在 56） |
-| 240 | 4 | sync_read 排队时判定前面设备不在线、跳过的次数 |
-| 244 | 4 | 发送前检测到总线忙而放弃应答的次数 |
+| 0 / 1 | 1 cada | Versão do firmware 0.2 (maior.menor), sem se passar pela 3.46 dos servos |
+| 2 | 1 | END = 0 (little-endian) |
+| 3 | 2 | Modelo personalizado `0x4D44` |
+| 5 / 6 / 8 | 1 cada | ID 200 / baud rate 0 (1Mbps) / nível de estado da resposta 1 |
+| **56** | **15** | **O bloco que o controlador principal lê a cada tick**: gyro XYZ (int16, 17,5 mdps/LSB), quaternion XYZ (binary16), contador de amostras (u8), bits de estado, reservado 0. Ordem de eixos bruta, sem transformação de coordenadas |
+| 124 | 6 | gyro XYZ, três int16, ±500dps (diagnóstico, a mesma cópia do bloco) |
+| 130 | 6 | quaternion XYZ, três IEEE binary16; o W é reconstruído pelo controlador principal |
+| 136 | 6 | Aceleração bruta XYZ, três int16, ±4g |
+| 142 | 1 | 8 bits baixos do contador de amostras de atitude |
+| 143 | 1 | bit0=ready, bit1=configured, bit2=error |
+| 144 / 145 | 1 cada | WHO_AM_I / código de erro |
+| 146 / 147 | 1 cada | Estado do clock / chave do watchdog |
+| 148 / 152 / 156 | 4 cada | Contadores de amostras de atitude / gyro / accel |
+| 160 / 164 / 168 | 4 cada | uptime_ms / idade do gyro em ms / idade da atitude em ms |
+| 172 / 176 / 180 / 184 | 4 cada | Erros de SPI / estouros do FIFO / quaternions inválidos / número de recuperações |
+| 188 / 192 / 196 / 200 | 4 cada | Estouro da fila RX / erros de UART (ruído/erro de quadro/estouro, todos contam) / erros de checksum / pacotes inválidos |
+| 204 / 208 / 212 / 216 | 4 cada | Timeouts de recepção / pacotes recebidos válidos / pacotes realmente enviados / respostas canceladas |
+| 220 / 224 / 228 / 232 | 4 cada | Valor bruto da causa de reset do RCC / frequência principal em Hz / timeouts de TX / logs descartados |
+| 236 | 1 | Versão 2 da tabela de registradores de diagnóstico deste projeto (protocolo Feetech, bloco em 56) |
+| 240 | 4 | Número de vezes que, no enfileiramento do sync_read, se julgou o dispositivo da frente fora de linha e se o pulou |
+| 244 | 4 | Número de vezes que se detectou barramento ocupado antes de enviar e se abandonou a resposta |
 
-其余 0~255 地址读为 0；写一律 ACK 但不生效（重新初始化 IMU 改用 J3 日志串口的 `r` 命令）。56~70 是主控接口；124 及之后是**本项目自定义诊断扩展**，不宣称与舵机的电压/温度寄存器兼容。
+Os demais endereços 0~255 são lidos como 0; qualquer escrita dá ACK mas não surte efeito (para reinicializar o IMU, use o comando `r` da serial de log do J3). 56~70 é a interface do controlador principal; 124 em diante é uma **extensão de diagnóstico personalizada deste projeto**, sem afirmar compatibilidade com os registradores de tensão/temperatura dos servos.
 
-块里的状态位（byte 13）：BIT0 融合没就绪（四元数全 0）；BIT1 跟 IMU 通信失败（SPI/复位超时/配置/数据过期/FIFO）；BIT2 自检失败（WHO_AM_I 不对）；BIT3 两次读块之间刷新了 4 次以上（120 Hz 采样、50 Hz 读每次正常 2~3 次）。
-错误码见 `imu.h`：0正常、1启动、2SPI、3身份、4复位超时、5配置、6过期、7FIFO、8四元数。
-时钟状态：0=HSI PLL、1=HSE PLL、2=HSE失败回退HSI PLL、3=PLL失败HSI16、4=切换失败回退。
+Bits de estado no bloco (byte 13): BIT0 fusão não pronta (quaternion todo zero); BIT1 falha de comunicação com o IMU (SPI/timeout de reset/configuração/dado obsoleto/FIFO); BIT2 falha no autoteste (WHO_AM_I incorreto); BIT3 mais de 4 atualizações entre duas leituras do bloco (com amostragem a 120 Hz e leitura a 50 Hz, o normal é 2~3 por leitura).
+Os códigos de erro estão em `imu.h`: 0 normal, 1 partida, 2 SPI, 3 identidade, 4 timeout de reset, 5 configuração, 6 obsoleto, 7 FIFO, 8 quaternion.
+Estado do clock: 0=HSI PLL, 1=HSE PLL, 2=falha do HSE, volta ao HSI PLL, 3=falha do PLL, HSI16, 4=falha na troca, volta atrás.
 
-## 6. 板到后的顺序
+## 6. Ordem de trabalho quando a placa chegar
 
-1. 核实硬件版本、J3方向及电源，先单板限流上电，检查3.3V、短路、发热和复位。
-2. SWD识别 STM32，下载 HEX，确认 main 可断点、复位和断电重启都可启动。
-3. 接 J3 日志串口，115200/8N1。应有版本信息；每秒输出 ready、id、错误和数据。
-   `s`打印状态，`l`切换周期日志，`r`重新初始化IMU，`?`查看帮助。
-4. 检查 WHO_AM_I=0x70、ready=1、采样计数增长，翻面/转动三轴核对加速度及姿态方向。
-5. 只接 IMU 的总线（URT-2 等半双工适配器），运行 `python tools/imu200/imu200.py check --port COMx --only-imu`（只问 200），再接舵机跑完整的 `check`。
-6. 用逻辑分析仪检查1Mbps、DE极性、最后停止位后释放、RX恢复及最坏回复延迟。
-7. 接入一个舵机，再接完整总线；ID200放第一。记录错误、丢包、FIFO及采样年龄。
-8. 完成主控失效处理和安装方向核对后，再进行支撑状态下的整机联调。
+1. Confirme a versão do hardware, a direção do J3 e a alimentação; primeiro energize a placa isolada com limitação de corrente, verificando 3,3V, curto-circuito, aquecimento e reset.
+2. Reconheça o STM32 por SWD, baixe o HEX, confirme que há ponto de parada em main e que a placa inicia tanto por reset quanto por religamento da energia.
+3. Ligue a serial de log do J3, 115200/8N1. Deve haver informação de versão; a cada segundo saem ready, id, erros e dados.
+   `s` imprime o estado, `l` alterna o log periódico, `r` reinicializa o IMU, `?` mostra a ajuda.
+4. Verifique WHO_AM_I=0x70, ready=1, contador de amostras crescendo; vire/gire nos três eixos para conferir a aceleração e a direção da atitude.
+5. Ligue só o barramento do IMU (adaptador half-duplex como o URT-2), execute `python tools/imu200/imu200.py check --port COMx --only-imu` (pergunta só pelo 200), depois ligue os servos e execute o `check` completo.
+6. Use um analisador lógico para verificar 1Mbps, polaridade do DE, liberação após o último bit de parada, recuperação do RX e o pior atraso de resposta.
+7. Ligue um servo e depois o barramento completo; ID200 na primeira posição. Registre erros, perda de pacotes, FIFO e idade das amostras.
+8. Depois de concluir o tratamento de falhas do controlador principal e a conferência da direção de montagem, faça a integração do robô completo em estado apoiado.
 
-### 电脑验收工具
+### Ferramenta de aceitação no computador
 
-总线验收用 [`tools/imu200/imu200.py`](../../../tools/imu200/imu200.py)（0.1.0 的 `Tools/imu_probe.py` 说的是 Dynamixel 协议，已随协议更换删除）。需要 Python 3.10+ 和 pyserial：
+A aceitação do barramento usa [`tools/imu200/imu200.py`](../../../tools/imu200/imu200.py) (o `Tools/imu_probe.py` da 0.1.0 falava o protocolo Dynamixel e foi removido junto com a troca de protocolo). Requer Python 3.10+ e pyserial:
 
 ```powershell
 python tools/imu200/imu200.py check --port COM5   # 13 项逐条 PASS/FAIL，判据照主控源码
 python tools/imu200/imu200.py demo                # 不接硬件，看假小板怎么答
 ```
 
-把 COM5 替换为**半双工总线适配器**端口；J3日志口不能响应这些协议指令。日志落在 `tools/imu200/logs/`（原始收发十六进制 + 每帧一行 JSONL）。
-需要安装可运行的 Python，Windows 应用商店入口占位符不能运行这些脚本；编译固件本身无需 Python。
+Substitua COM5 pela porta do **adaptador de barramento half-duplex**; a porta de log do J3 não consegue responder a essas instruções de protocolo. O log é gravado em `tools/imu200/logs/` (TX/RX brutos em hexadecimal + uma linha JSONL por quadro).
+É preciso ter um Python executável instalado; o atalho de espaço reservado da Microsoft Store no Windows não consegue executar esses scripts; compilar o firmware em si não exige Python.
 
-## 7. 验证与已知限制
+## 7. Validação e limitações conhecidas
 
-测试代码使用实际 C 编译器运行；SPI/FIFO测试用模拟寄存器和时间，不等同于芯片实测。
-安装 MSVC 后，在其 **x64 Native Tools Command Prompt / Developer PowerShell** 中运行 `Tools/test.ps1` 重复主机测试。
-该入口要求 `cl` 已在 PATH 中；可传 `-PythonExe` 指定自己的 Python。单独运行两份 C 测试 `.cmd` 时，
-也可将自己的 `vcvars64.bat` 完整路径作为第一个参数。测试脚本不会安装编译器，也不连接硬件。
-当前验证记录见 `VALIDATION.md`，第三方源版本见 `DEPENDENCIES.md`。
+O código de teste é executado com um compilador C real; os testes de SPI/FIFO usam registradores e tempo simulados, não equivalendo a medição no chip.
+Depois de instalar o MSVC, execute o `Tools/test.ps1` no **x64 Native Tools Command Prompt / Developer PowerShell** dele para repetir os testes de host.
+Essa entrada exige que o `cl` já esteja no PATH; pode-se passar `-PythonExe` para indicar o seu próprio Python. Ao executar separadamente os dois `.cmd` de testes em C,
+também se pode passar como primeiro argumento o caminho completo do seu próprio `vcvars64.bat`. Os scripts de teste não instalam compilador nem conectam hardware.
+O registro de validação atual está em `VALIDATION.md`, e as versões das fontes de terceiros em `DEPENDENCIES.md`.
 
-待实板确认：电源与装配、HSI波特率误差、SPI模式/边沿/片选时序、TX使能时序、总线电气电平、
-FIFO实际更新率、SFLP初始收敛和坐标方向、温漂、看门狗恢复及长时间共线运行。
-软件测试通过不能替代这些验收。
+A confirmar em placa real: alimentação e montagem, erro de baud rate do HSI, modo/borda/temporização de seleção de chip do SPI, temporização de habilitação do TX, níveis elétricos do barramento,
+taxa real de atualização do FIFO, convergência inicial do SFLP e direção das coordenadas, deriva térmica, recuperação do watchdog e operação prolongada na mesma linha.
+A aprovação nos testes de software não substitui essas aceitações.
 
-## 8. 资料依据
+## 8. Fontes de referência
 
-- [本板硬件](https://github.com/fanhao375/microduck-replica/tree/a1f4979c425bd9228622be89f2bfa4d1de7fbde3/hardware/imu_to_dxl)
-- [STM32G031数据手册](https://www.st.com/resource/en/datasheet/stm32g031f8.pdf)
-- [LSM6DSV16X数据手册](https://www.st.com/resource/en/datasheet/lsm6dsv16x.pdf)
-- [ST IMU驱动](https://github.com/STMicroelectronics/lsm6dsv16x-pid)
-- 飞特《SCS 通信协议》与内存表：仓库 [`docs/飞特资料/`](../../../docs/飞特资料/)
-- [本板总线协议（接口契约）](../总线协议.md)
-- [所检查的上游主控接口](https://github.com/pollen-robotics/microduck/blob/5984efb770855432b03dafd3d879e9929981e45b/duck-control/src/bus.rs)
+- [Hardware desta placa](https://github.com/fanhao375/microduck-replica/tree/a1f4979c425bd9228622be89f2bfa4d1de7fbde3/hardware/imu_to_dxl)
+- [Datasheet do STM32G031](https://www.st.com/resource/en/datasheet/stm32g031f8.pdf)
+- [Datasheet do LSM6DSV16X](https://www.st.com/resource/en/datasheet/lsm6dsv16x.pdf)
+- [Driver de IMU da ST](https://github.com/STMicroelectronics/lsm6dsv16x-pid)
+- Feetech, *Protocolo de comunicação SCS* e mapa de memória: [`docs/飞特资料/`](../../../docs/飞特资料/) do repositório
+- [Protocolo de barramento desta placa (contrato de interface)](../总线协议.md)
+- [Interface do controlador principal upstream examinada](https://github.com/pollen-robotics/microduck/blob/5984efb770855432b03dafd3d879e9929981e45b/duck-control/src/bus.rs)
 
-本项目新写代码按 MIT 许可提供；第三方文件保留各自版权和许可，见各 Drivers 目录。
+O código novo escrito por este projeto é fornecido sob a licença MIT; os arquivos de terceiros mantêm seus próprios direitos autorais e licenças, veja cada diretório Drivers.
